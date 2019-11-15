@@ -3,18 +3,19 @@ from __future__ import division
 from __future__ import print_function
 import tensorflow as tf
 import numpy as np
-import detect_face
+from align import detect_face_mdoel
 from os.path import join as pjoin
 import time
 from PIL import ImageFont, ImageDraw, Image
 import math
 import os
-
+from skimage import transform as trans
+import cv2
 # fontpath = "/data/sunruina/face_rg/face_rg_server" + "/data_pro/wryh.ttf"  # 32为字体大小
 
 exe_path = os.path.abspath(__file__)
-fontpath = str(exe_path.split('face_rg_server/')[0]) + 'face_rg_server/' + "data_pro/wryh.ttf"
-print(fontpath)
+# fontpath = str(exe_path.split('face_rg_server/')[0]) + 'face_rg_server/' + "data_pro/wryh.ttf"
+fontpath = str(exe_path.split('face_rg_server_new/')[0]) + 'face_rg_server_new/' + "data_pro/wryh.ttf"
 font22 = ImageFont.truetype(fontpath, 22)
 mark_color = (225, 209, 0)
 
@@ -72,10 +73,10 @@ def turn_face(b_boxes, points5):
     # 迭代每一张脸
     for fi in range(len(b_boxes)):
 
-        print('b_boxes[fi], points5 >> fi')
-        print(b_boxes[fi])
+        # print('b_boxes[fi], points5 >> fi')
+        # print(b_boxes[fi])
         for pi in range(10):
-            print(points5[pi][fi])
+            # print(points5[pi][fi])
             L = np.asarray([points5[0][fi], points5[5][fi]])
             R = np.asarray([points5[1][fi], points5[6][fi]])
             A_v = R - L
@@ -141,7 +142,7 @@ def hisEqulColor1(img):
     return img
 
 
-def load_and_align_data(image, image_size, minsize=100, trans_flag=0, threshold=[0.6, 0.7, 0.7], factor=0.709,
+def load_and_align_data(image, det_4para, minsize=100, threshold=[0.85, 0.7, 0.7], factor=0.709,
                         gama_flag=0):  # 返回彩图
     # face detection parameters
     # 以下两个阈值调整后，歪脸和遮挡会被过滤掉
@@ -163,16 +164,11 @@ def load_and_align_data(image, image_size, minsize=100, trans_flag=0, threshold=
     img = to_rgb(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
     img_size = np.asarray(img.shape)[0:2]
     # 返回边界框数组 （参数分别是输入图片 脸部最小尺寸 三个网络 阈值 ）
-    bounding_boxes, points_5 = detect_face.detect_face(img, minsize, pnet, rnet, onet, threshold, factor)
+    bounding_boxes, points_5 = detect_face_mdoel.detect_face(img, minsize, pnet, rnet, onet, threshold, factor)
     # bounding_boxes=[[x1,y1,x2,y2,score], [x1,y1,x2,y2,score]]，points_5 = [[x1左眼，x2左眼], [x1右眼，x2右眼], [x1鼻子，x2鼻子], [x左嘴角，..], [x右嘴角, ..], [ y左眼，..], [y右眼，..], [y鼻子，..], [y左嘴角，..], [y右嘴角, ..]]
     if len(bounding_boxes) < 1:
-        return np.asarray([]), np.asarray([]), np.asarray([]), 0
+        return np.asarray([]), np.asarray([]), np.asarray([]), np.asarray([]), np.asarray([]), 0
     else:
-
-        # 歪脸转正
-        # bounding_boxes, points_5 = turn_face(bounding_boxes, points_5)
-
-        crop = []
         det_f = bounding_boxes
 
         det_f[:, 0] = np.maximum(det_f[:, 0], 0)
@@ -181,34 +177,11 @@ def load_and_align_data(image, image_size, minsize=100, trans_flag=0, threshold=
         det_f[:, 3] = np.minimum(det_f[:, 3], img_size[0])
         det_f = det_f.astype(int)
 
-        if trans_flag == 1:
-            image_size = 112  # 目前只能对112的旋转
-            crop = align_face(image, bounding_boxes, points_5, image_size)  # ？？？ 到函数内部改变 poins_5 格式即可
-        else:
-            for i in range(len(bounding_boxes)):
-                temp_crop = image[det_f[i, 1]:det_f[i, 3], det_f[i, 0]:det_f[i, 2], :]
-                aligned = cv2.resize(temp_crop, (image_size, image_size))
-                crop.append(aligned)
-        crop_image = np.stack(crop)
+        crop_at, points_5_crop_at = align_face(image, bounding_boxes, points_5, det_4para[0], det_4para[1])  # 活体尺寸
+        crop_rg, points_5_crop_rg = align_face(image, bounding_boxes, points_5, det_4para[2], det_4para[3])  # 识别尺寸
+        crop_at, crop_rg = np.stack(crop_at), np.stack(crop_rg)
 
-        points_5_crop = np.zeros(points_5.shape)
-        # # 5点标记
-        # f_ns = len(points_5[0])
-        #
-        # for xi in range(10):
-        #     for fi in range(f_ns):
-        #         fi_w = bounding_boxes[fi][2] - bounding_boxes[fi][0]
-        #         fi_h = bounding_boxes[fi][3] - bounding_boxes[fi][1]
-        #         if xi <= 4:
-        #             points_5_crop[xi][fi] = ((points_5[xi][fi] - bounding_boxes[fi][0]) / fi_w) * image_size
-        #         elif 4 < xi <= 9:
-        #             points_5_crop[xi][fi] = ((points_5[xi][fi] - bounding_boxes[fi][1]) / fi_h) * image_size
-        # points_5_crop = np.asarray(points_5_crop, dtype=int)
-        return det_f, crop_image, points_5_crop, 1
-
-
-from skimage import transform as trans
-import cv2
+        return det_f, crop_at, points_5_crop_at, crop_rg, points_5_crop_rg, 1
 
 
 def rotate_about_center(src, angle, scale=1.):
@@ -230,7 +203,7 @@ def rotate_about_center(src, angle, scale=1.):
     return cv2.warpAffine(src, rot_mat, (int(math.ceil(nw)), int(math.ceil(nh))), flags=cv2.INTER_LANCZOS4)
 
 
-def align_face(img, _bbox_raw, _landmark_raw, _image_size):
+def align_face(img, _bbox_raw, _landmark_raw, _image_size, _extend_p):
     """
     used for aligning face
 
@@ -291,43 +264,46 @@ def align_face(img, _bbox_raw, _landmark_raw, _image_size):
 
     num = np.shape(_bbox_raw)[0]
     warped = np.zeros((num, _image_size, _image_size, 3))
+    p5 = np.zeros((num, 5, 2))
 
-    _image_size = str(_image_size) + "," + str(_image_size)
     for i in range(num):
-        warped[i, :] = preprocess(img, bbox=_bbox_raw[i], landmark=_landmark[i], image_size=_image_size)
+        warped[i, :], p5[i, :] = preprocess(img, bbox=_bbox_raw[i], landmark=_landmark[i], image_size=_image_size, extend_p=_extend_p)
 
-    return warped
+    return warped, p5
 
 
-def preprocess(img, bbox=None, landmark=None, **kwargs):
+def preprocess(img, bbox=None, landmark=None, image_size=112, extend_p=0.0):
+    # 只能剪裁出正方形的脸，如果需要 长方形的话需要再外边处理。
     M = None
-    image_size = []
-    str_image_size = kwargs.get('image_size', '')
-    if len(str_image_size) > 0:
-        image_size = [int(x) for x in str_image_size.split(',')]
-    if len(image_size) == 1:
-        image_size = [image_size[0], image_size[0]]
-    assert len(image_size) == 2
-    assert image_size[0] == 112
-    assert image_size[0] == 112 or image_size[1] == 96
-    # define desire position of landmarks
-    src = np.array([
-        [30.2946, 51.6963],
-        [65.5318, 51.5014],
-        [48.0252, 71.7366],
-        [33.5493, 92.3655],
-        [62.7299, 92.2041]], dtype=np.float32)
-    if image_size[1] == 112:
-        src[:, 0] += 8.0
+    # define desire position of landmarks  # 人脸的5个关键点的位置，是固定的
+    norm112_112_p5 = np.array([
+        [38.2946, 51.6963],
+        [73.5318, 51.5014],
+        [56.0252, 71.7366],
+        [41.5493, 92.3655],
+        [70.7299, 92.2041]], dtype=np.float32)
 
-    if landmark is not None:
-        assert len(image_size) == 2
-        dst = landmark.astype(np.float32)
+    if image_size != 112:
+        norm_any_p5 = norm112_112_p5 * (256/112)
+    else:
+        norm_any_p5 = norm112_112_p5
+    # print(norm_any_p5)
+    if extend_p != 0.0:
+        extend_size = int(image_size * (1 + extend_p))
+        norm_any_p5 = norm_any_p5 + int((extend_size-image_size)/2)  # 如果需要延伸脸周围20%的区域，则在112的标准尺寸上进行放大
+    else:
+        norm_any_p5 = norm_any_p5
+        extend_size = image_size
+
+    # norm_p5 = (norm_p5 - np.min(norm_p5)) /(np.max(norm_p5) - np.min(norm_p5))
+
+    if landmark is not None:  # 如果landmark不为none，就计算出M
+        landmark_f = landmark.astype(np.float32)  # 目标关键点，设置一下它的数据类型
 
         # skimage affine
-        tform = trans.SimilarityTransform()
-        tform.estimate(dst, src)
-        M = tform.params[0:2, :]
+        tform = trans.SimilarityTransform()  # 引用 class SimilarityTransform()
+        tform.estimate(landmark_f[[0, 1], :], norm_any_p5[[0, 1], :])  # 从一组对应的点估计转换,随便两个点就可以，3个点5个点都可以
+        M = tform.params[0:2, :]  # 得到(3, 3) 的齐次变换矩阵
 
     #         #cv2 affine , worse than skimage
     #         src = src[0:3,:]
@@ -335,30 +311,19 @@ def preprocess(img, bbox=None, landmark=None, **kwargs):
     #         M = cv2.getAffineTransform(dst,src)
 
     if M is None:
-        if bbox is None:  # use center crop
-            det = np.zeros(4, dtype=np.int32)
-            det[0] = int(img.shape[1] * 0.0625)
-            det[1] = int(img.shape[0] * 0.0625)
-            det[2] = img.shape[1] - det[0]
-            det[3] = img.shape[0] - det[1]
-        else:
-            det = bbox
-        margin = kwargs.get('margin', 44)
-        bb = np.zeros(4, dtype=np.int32)
-        bb[0] = np.maximum(det[0] - margin / 2, 0)  # 左上角x
-        bb[1] = np.maximum(det[1] - margin / 2, 0)  # 左上角x
-        bb[2] = np.minimum(det[2] + margin / 2, img.shape[1])
-        bb[3] = np.minimum(det[3] + margin / 2, img.shape[0])
-        ret = img[bb[1]:bb[3], bb[0]:bb[2], :]
-        if len(image_size) > 0:
-            ret = cv2.resize(ret, (image_size[1], image_size[0]))
-        return ret
+
+        ret = img[bbox[1]:bbox[3], bbox[0]:bbox[2], :]
+        ret = cv2.resize(ret, (image_size, image_size))
+        landmark = np.asarray(norm112_112_p5, dtype=int)
+        return ret, landmark
     else:  # do align using landmark
-        assert len(image_size) == 2
+        warped = cv2.warpAffine(img, M, (extend_size, extend_size), borderValue=0.0)
+        move_dictance = int((112*extend_p)/2)
+        landmark = np.asarray(norm112_112_p5+move_dictance, dtype=int)
 
-        warped = cv2.warpAffine(img, M, (image_size[1], image_size[0]), borderValue=0.0)
-
-    return warped
+        warped = cv2.resize(warped, (image_size, image_size))
+        landmark = np.asarray(landmark * (1/(1+extend_p)), dtype=int)
+        return warped, landmark
 
 
 def cv2_write_simsun(cv2_img, loc, text_china, char_color):
@@ -427,9 +392,19 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 with tf.Graph().as_default():
     sess = tf.Session(config=gpu_config)
     with sess.as_default():
-        pnet, rnet, onet = detect_face.create_mtcnn(sess, None)
+        pnet, rnet, onet = detect_face_mdoel.create_mtcnn(sess, None)
 
 if __name__ == '__main__':
+    '''单张图片'''
+    p_path = '/Users/finup/Desktop/rg/face_rg_server_new/data_pro/陈荟羽-凡信.jpg'
+    f_pic = cv2.imread(p_path)
+    det_para = [256, 0.1, 256, 0.0]  # 活体尺寸和延申%，识别尺寸和延伸%
+    dets, crop_images_at, point5_at,  crop_images_rg, point5_rg, align_flag = load_and_align_data(f_pic, det_para, minsize=90)
+    cv2.imwrite('/Users/finup/Desktop/rg/face_rg_server_new/data_pro/陈荟羽-凡信-cropat.jpg', crop_images_at[0])
+    cv2.imwrite('/Users/finup/Desktop/rg/face_rg_server_new/data_pro/陈荟羽-凡信-croprg.jpg', crop_images_rg[0])
+    # print(dets)
+    # print(point5_at)
+    # print(point5_rg)
     '''单层目录'''
     # st = time.time()
     # st_i = st
@@ -460,7 +435,7 @@ if __name__ == '__main__':
     # not_found_n = 0
     # for i in range(len(pics_name)):
     #     f_pic = cv2.imread(pics_path + pics_name[i])
-    #     dets, crop_images, point5, j = load_and_align_data(f_pic, 112, trans_flag=1,
+    #     dets, crop_images, point5 = load_and_align_data(f_pic, 112, trans_flag=1,
     #                                                        minsize=100, threshold=[0.6, 0.7, 0.7],
     #                                                        factor=0.709)  # minsize 和 threshold 得配合着调节，相互影响，minsize小 threshold也总识别不出来
     #     if len(crop_images) != 0:
@@ -477,89 +452,89 @@ if __name__ == '__main__':
     # print('finish time:', time.time() - st)
 
     '''两级目录 大量数据'''
-    st = time.time()
-    # pics_path = '/Users/finup/Desktop/rg/face_rg_server/data_pro/dc_marking_1known_ttt'
-    # pics_path = '/Users/finup/Desktop/finup_face_dataset_trans_no_s'
-    pics_path = '/data/sunruina/face_rg/finup_face_dataset'
-
-    image_size = (112, 112)
-    print('pic reading %s' % pics_path)
-    if os.path.isdir(pics_path):
-        paths = list(os.listdir(pics_path))
-        if '.DS_Store' in paths:  # 去掉不为文件夹格式的mac os系统文件
-            paths.remove('.DS_Store')
-    else:
-        paths = [pics_path]
-
-    try:
-        os.mkdir(pics_path + '_trans/')
-        os.mkdir(pics_path + '_trans_no/')
-    except:
-        pass
-
-    n_i, mtcnn_1, mtcnn_0 = 0, 0, 0
-    for peo in paths:
-        peo_pics = list(os.listdir(pics_path + '/' + peo + '/'))
-        if '.DS_Store' in peo_pics:  # 去掉不为jpg和png格式的mac os系统文件
-            peo_pics.remove('.DS_Store')
-        peo_pkg = pics_path + '_trans/' + peo + '/'
-        try:
-            os.mkdir(peo_pkg)
-        except:
-            pass
-        nn = len(peo_pics)
-        for i in range(nn):
-            n_i += 1
-            p_path = pics_path + '/' + peo + '/' + peo_pics[i]
-            f_pic = cv2.imread(p_path)
-
-            dets, crop_images, point5, j = load_and_align_data(f_pic, 112, trans_flag=1, minsize=90)
-            # 获取人脸, 由于frame色彩空间rgb不对应问题，需统一转为灰色图片
-            if len(crop_images) != 0:
-                to_picpath = peo_pkg + peo_pics[i]
-                cv2.imwrite(to_picpath, crop_images[0])
-                mtcnn_1 += 1
-            else:
-                f_pic1 = rotate_about_center(f_pic, 90)
-                dets, crop_images, point5, j = load_and_align_data(f_pic1, 112, trans_flag=1, minsize=90)
-                if len(crop_images) != 0:
-                    to_picpath = peo_pkg + peo_pics[i]
-                    cv2.imwrite(to_picpath, crop_images[0])
-                    mtcnn_1 += 1
-                else:
-                    # 自适应直方图均衡化
-                    dets, crop_images, point5, j = load_and_align_data(f_pic, 112, trans_flag=1, minsize=90,
-                                                                       gama_flag=1)
-                    if len(crop_images) != 0:
-                        to_picpath = peo_pkg + peo_pics[i]
-                        cv2.imwrite(to_picpath, crop_images[0])
-                        mtcnn_1 += 1
-                    else:
-                        f_pic1 = rotate_about_center(f_pic, 180)
-                        dets, crop_images, point5, j = load_and_align_data(f_pic1, 112, trans_flag=1, minsize=90)
-                        if len(crop_images) != 0:
-                            to_picpath = peo_pkg + peo_pics[i]
-                            cv2.imwrite(to_picpath, crop_images[0])
-                            mtcnn_1 += 1
-                        else:
-                            f_pic1 = rotate_about_center(f_pic, 270)
-                            dets, crop_images, point5, j = load_and_align_data(f_pic1, 112, trans_flag=1, minsize=90)
-                            if len(crop_images) != 0:
-                                to_picpath = peo_pkg + peo_pics[i]
-                                cv2.imwrite(to_picpath, crop_images[0])
-                                mtcnn_1 += 1
-                            else:
-                                peo_pkg_no = pics_path + '_trans_no/' + peo + '/'
-                                try:
-                                    os.mkdir(peo_pkg_no)
-                                except:
-                                    pass
-                                to_picpath_no = peo_pkg_no + peo_pics[i]
-                                print(p_path, 'not found !')
-                                cv2.imwrite(to_picpath_no, f_pic)
-                                mtcnn_0 += 1
-
-            if n_i % 1 == 0:
-                print('finish n: ', n_i, 'notfound n: ', mtcnn_0)
-
-    print('finish time:', int(time.time() - st))
+    # st = time.time()
+    # # pics_path = '/Users/finup/Desktop/rg/face_rg_server/data_pro/dc_marking_1known_ttt'
+    # # pics_path = '/Users/finup/Desktop/finup_face_dataset_trans_no_s'
+    # pics_path = '/data/sunruina/face_rg/finup_face_dataset'
+    #
+    # image_size = (112, 112)
+    # print('pic reading %s' % pics_path)
+    # if os.path.isdir(pics_path):
+    #     paths = list(os.listdir(pics_path))
+    #     if '.DS_Store' in paths:  # 去掉不为文件夹格式的mac os系统文件
+    #         paths.remove('.DS_Store')
+    # else:
+    #     paths = [pics_path]
+    #
+    # try:
+    #     os.mkdir(pics_path + '_trans/')
+    #     os.mkdir(pics_path + '_trans_no/')
+    # except:
+    #     pass
+    #
+    # n_i, mtcnn_1, mtcnn_0 = 0, 0, 0
+    # for peo in paths:
+    #     peo_pics = list(os.listdir(pics_path + '/' + peo + '/'))
+    #     if '.DS_Store' in peo_pics:  # 去掉不为jpg和png格式的mac os系统文件
+    #         peo_pics.remove('.DS_Store')
+    #     peo_pkg = pics_path + '_trans/' + peo + '/'
+    #     try:
+    #         os.mkdir(peo_pkg)
+    #     except:
+    #         pass
+    #     nn = len(peo_pics)
+    #     for i in range(nn):
+    #         n_i += 1
+    #         p_path = pics_path + '/' + peo + '/' + peo_pics[i]
+    #         f_pic = cv2.imread(p_path)
+    #
+    #         dets, crop_images, point5 = load_and_align_data(f_pic, 112, trans_flag=1, minsize=90)
+    #         # 获取人脸, 由于frame色彩空间rgb不对应问题，需统一转为灰色图片
+    #         if len(crop_images) != 0:
+    #             to_picpath = peo_pkg + peo_pics[i]
+    #             cv2.imwrite(to_picpath, crop_images[0])
+    #             mtcnn_1 += 1
+    #         else:
+    #             f_pic1 = rotate_about_center(f_pic, 90)
+    #             dets, crop_images, point5 = load_and_align_data(f_pic1, 112, trans_flag=1, minsize=90)
+    #             if len(crop_images) != 0:
+    #                 to_picpath = peo_pkg + peo_pics[i]
+    #                 cv2.imwrite(to_picpath, crop_images[0])
+    #                 mtcnn_1 += 1
+    #             else:
+    #                 # 自适应直方图均衡化
+    #                 dets, crop_images, point5 = load_and_align_data(f_pic, 112, trans_flag=1, minsize=90,
+    #                                                                    gama_flag=1)
+    #                 if len(crop_images) != 0:
+    #                     to_picpath = peo_pkg + peo_pics[i]
+    #                     cv2.imwrite(to_picpath, crop_images[0])
+    #                     mtcnn_1 += 1
+    #                 else:
+    #                     f_pic1 = rotate_about_center(f_pic, 180)
+    #                     dets, crop_images, point5 = load_and_align_data(f_pic1, 112, trans_flag=1, minsize=90)
+    #                     if len(crop_images) != 0:
+    #                         to_picpath = peo_pkg + peo_pics[i]
+    #                         cv2.imwrite(to_picpath, crop_images[0])
+    #                         mtcnn_1 += 1
+    #                     else:
+    #                         f_pic1 = rotate_about_center(f_pic, 270)
+    #                         dets, crop_images, point5 = load_and_align_data(f_pic1, 112, trans_flag=1, minsize=90)
+    #                         if len(crop_images) != 0:
+    #                             to_picpath = peo_pkg + peo_pics[i]
+    #                             cv2.imwrite(to_picpath, crop_images[0])
+    #                             mtcnn_1 += 1
+    #                         else:
+    #                             peo_pkg_no = pics_path + '_trans_no/' + peo + '/'
+    #                             try:
+    #                                 os.mkdir(peo_pkg_no)
+    #                             except:
+    #                                 pass
+    #                             to_picpath_no = peo_pkg_no + peo_pics[i]
+    #                             print(p_path, 'not found !')
+    #                             cv2.imwrite(to_picpath_no, f_pic)
+    #                             mtcnn_0 += 1
+    #
+    #         if n_i % 1 == 0:
+    #             print('finish n: ', n_i, 'notfound n: ', mtcnn_0)
+    #
+    # print('finish time:', int(time.time() - st))

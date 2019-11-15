@@ -111,10 +111,11 @@ class InsightPreAuroua():
         self.load_knows_pkl()
 
         exe_path = os.path.abspath(__file__)
-        fontpath = str(exe_path.split('face_rg_server/')[0]) + 'face_rg_server/' + "data_pro/pre_img.jpg"
+        # fontpath = str(exe_path.split('face_rg_server/')[0]) + 'face_rg_server/' + "data_pro/pre_img.jpg"
+        fontpath = str(exe_path.split('face_rg_server_new/')[0]) + 'face_rg_server_new/' + "data_pro/pre_img.jpg"
         image_pre1 = cv2.imread(fontpath)
         img_crop = np.asarray([cv2.resize(image_pre1, self.au_cfg.image_size)])
-        face_names, is_knowns, face_embs, sim_pro_lst = self.imgs_get_names(img_crop)
+        face_names, is_knowns, face_embs, sim_pro_lst = self.imgs_get_names(img_crop, batchsize=1)
         print('init done')
 
     def run_embds(self, crop_images, batch_size=1):
@@ -122,7 +123,7 @@ class InsightPreAuroua():
         self.feed_dict_test.setdefault(self.images, None)
         # for idx, data in enumerate(data_iter(crop_images, self.au_cfg.batch_size)):
         for idx, data in enumerate(data_iter(crop_images, batch_size)):
-            print('batch n_th:', idx)
+            # print('batch n_th:', idx)
             data_tmp = np.asarray(data.copy(), dtype='float64')  # fix issues #4 <class 'tuple'>: (32, 112, 112, 3)
             data_tmp -= 127.5
             data_tmp *= 0.0078125
@@ -252,21 +253,21 @@ class InsightPreAuroua():
         # print(cos_sim)
         is_known = 0
         sim_p = max(cos_sim)
-        if sim_p >= 0.65:  # 越大越严格
+        if sim_p >= 0.75:  # 越大越严格
             loc_similar_most = np.where(cos_sim == sim_p)
-            print(loc_similar_most)
+            # print(loc_similar_most)
             is_known = 1
-            print('识别到最相似的人是：', sim_p, self.known_names[loc_similar_most][0])
+            # print('识别到最相似的人是：', sim_p, self.known_names[loc_similar_most][0])
             return self.known_names[loc_similar_most][0], is_known, sim_p
         else:
             loc_similar_most = np.where(cos_sim == sim_p)
-            print('未识别到但最相似的人是：', sim_p, self.known_names[loc_similar_most][0])
-            return '未知的同学', is_known, sim_p
+            # print('未识别到但最相似的人是：', sim_p, self.known_names[loc_similar_most][0])
+            return '0-未知的同学-0', is_known, sim_p
 
     def gen_knowns_db(self, pic_path, pkl_path):
 
         # 读marking人脸图片list
-        imgs_pic, fns = load_image(pic_path, self.au_cfg.image_size)
+        imgs_pic, fns = load_image(pic_path, self.au_cfg.image_size, name_is_folder=0)
 
         # 获取embs
         print('forward running...')
@@ -279,9 +280,9 @@ class InsightPreAuroua():
                 pickle.dump(embds_dict, f)
             print('saving knows pkl...', len(embds_arr), pkl_path)
 
-    def imgs_get_names(self, crop_image):
+    def imgs_get_names(self, crop_image, batchsize):
         # print('rg_start', len(crop_image))
-        embds_arr = self.run_embds(crop_image, 64)
+        embds_arr = self.run_embds(crop_image, batch_size=batchsize)
         face_embs = embds_arr / np.linalg.norm(embds_arr, axis=1, keepdims=True)  # 然后再求方向向量
 
         face_names = []
