@@ -396,12 +396,12 @@ with tf.Graph().as_default():
 
 if __name__ == '__main__':
     '''单张图片'''
-    p_path = '/Users/finup/Desktop/rg/face_rg_server_new/data_pro/陈荟羽-凡信.jpg'
+    p_path = '/Users/finup/Desktop/rg/face_rg_server_new/data_pro/054258-许杉-公关部.JPG'
     f_pic = cv2.imread(p_path)
-    det_para = [256, 0.1, 256, 0.0]  # 活体尺寸和延申%，识别尺寸和延伸%
+    det_para = [256, 0.2, 256, 0.0]  # 活体尺寸和延申%，识别尺寸和延伸%
     dets, crop_images_at, point5_at,  crop_images_rg, point5_rg, align_flag = load_and_align_data(f_pic, det_para, minsize=90)
-    cv2.imwrite('/Users/finup/Desktop/rg/face_rg_server_new/data_pro/陈荟羽-凡信-cropat.jpg', crop_images_at[0])
-    cv2.imwrite('/Users/finup/Desktop/rg/face_rg_server_new/data_pro/陈荟羽-凡信-croprg.jpg', crop_images_rg[0])
+    cv2.imwrite('/Users/finup/Desktop/rg/face_rg_server_new/data_pro/陈荟羽-凡信-cropat2.jpg', crop_images_at[0])
+    cv2.imwrite('/Users/finup/Desktop/rg/face_rg_server_new/data_pro/陈荟羽-凡信-croprg2.jpg', crop_images_rg[0])
     # print(dets)
     # print(point5_at)
     # print(point5_rg)

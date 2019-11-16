@@ -57,12 +57,11 @@ def is_birthday(birthday):
     # birthday '19991112'
     import time
     today = time.localtime()
-    print(today, type(today))
     birthday = time.strptime(birthday, "%Y%m%d")
     if birthday[1] == today[1] and birthday[2] == today[2]:
-        return 1
+        return '1'
     else:
-        return 0
+        return '0'
 
 
 def info_dct(info_p, save_p):

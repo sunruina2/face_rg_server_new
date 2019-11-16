@@ -8,6 +8,7 @@ import time
 import pickle
 from data_pro.data_utils import brenner
 from anti.anti_pre import AntiSpoofing
+anti = AntiSpoofing()
 
 # from rg_model.model_facenet import FacenetPre
 # facenet_pre_m = FacenetPre()
@@ -21,7 +22,6 @@ from anti.anti_pre import AntiSpoofing
 # lastsave_embs0 = np.zeros(512)
 # imgsize = 112
 # # facenet_pre_m.gen_knowns_db('../facenet_files/office_face160/', '../facenet_files/embs_pkl/insight_luck/')
-anti = AntiSpoofing()
 
 from rg_model.model_insight_auroua import InsightPreAuroua
 
@@ -68,7 +68,7 @@ def rg_1frame(f_pic):
     # print('TIME rg: ********************************************** Start', np.round((now_exetime_rg - last_exetime_rg), 4))
     # last_exetime_rg = now_exetime_rg
 
-    det_para = [256, 0.1, 112, 0.0]  # 活体尺寸和延申%，识别尺寸和延伸%
+    det_para = [256, 0.5, 112, 0.0]  # 活体尺寸和延申%，识别尺寸和延伸%
     dets, crop_images_at, point5_at, crop_images_rg, point5_rg, align_flag = fc_server.load_and_align_data(f_pic,
                                                                                                            det_para,
                                                                                                            minsize=90)  # 获取人脸, 由于frame色彩空间rgb不对应问题，需统一转为灰色图片
@@ -95,7 +95,7 @@ def rg_1frame(f_pic):
         else:
             qx_hold = 100
         if is_qingxi1 >= qx_hold and is_qingxi0 >= qx_hold:  # 有人且清晰，则画人脸，进行识别名字
-            names, faceis_konwns, faceembs, min_sims = facenet_pre_m.imgs_get_names(crop_images_rg,
+            names, faceis_konwns, faceembs, sims = facenet_pre_m.imgs_get_names(crop_images_rg,
                                                                                     batchsize=len(dets))  # 获取人脸名字
             # print(names)
             names = [i.split('-')[1] for i in names]
@@ -113,14 +113,14 @@ def rg_1frame(f_pic):
                 # 单人模式 依据前后流进行最高概率修正
 
                 if is_same_t == '1':
-                    if is_same_p > last_maxacc['max_sim']:
+                    if sims[0] > last_maxacc['max_sim']:
                         # 如果遇到这个人更准确的脸部识别结果则用该最准结果作为输出结果。并把此刻最终结果存储在 历史最准字典中
-                        last_maxacc = {'max_name': names[0], 'max_sim': is_same_p}
-                        # names[0] = names[0] + '_rg'+names[0]
+                        last_maxacc = {'max_name': names[0], 'max_sim': sims[0]}
+                        names[0] = names[0] + '_rg'+names[0]
                     else:
                         # 否则用这个人过去实时流中识别最准的识别结果。
                         names[0] = last_maxacc['max_name']
-                        # names[0] = last_maxacc['max_name'] + '_rg'+names[0]
+                        names[0] = last_maxacc['max_name'] + '_rg'+names[0]
                 else:
                     # 如果换人了，则将单人历史最准记录置零，再开始新的人的从0更新
                     last_maxacc = {'max_name': '', 'max_sim': 0.0}
@@ -130,7 +130,7 @@ def rg_1frame(f_pic):
                 if sead % 2 == 1:  # hash采样
                     fpic_path = '../facenet_files/stream_pictures/' + tstr_pic + '_' + is_same_t + '-' + str(
                         is_same_p[0])[2:4] + '_' + str(int(is_qingxi1)) + '-' + str(int(is_qingxi0)) + '_' + str(
-                        min_sims[0])[2:4]
+                        sims[0])[2:4]
                     cv2.imwrite(fpic_path + '_crop_' + names[0] + '.jpg', crop_images_rg[0])
                     # cv2.imwrite(fpic_path + '_raw_' + names[0] + '.jpg', f_pic)
                     lastsave_embs0 = faceembs[0]  # 更新last save emb，以便判定本帧是否和上一帧同一个人
@@ -149,12 +149,12 @@ def rg_1frame(f_pic):
                     # cv2.imwrite(fpic_path + '_cropmark' + '_' + mark5 + '_' + names[0] + '.jpg', crop_img_mark)
 
             '''活体检测'''
-            # anti_flag_list = []
-            # for i in range(len(dets)):
-            #     anti_flag_list.append(anti(crop_images_at[i]))
-            # '''在画框上显示是否活体'''
-            # for i in range(len(dets)):
-            #     names[i] = names[i]+'_'+str(anti_flag_list[i])
+            anti_flag_list = []
+            for i in range(len(dets)):
+                anti_flag_list.append(anti(crop_images_at[i]))
+            '''在画框上显示是否活体'''
+            for i in range(len(dets)):
+                names[i] = names[i]+'_'+str(anti_flag_list[i])
 
             # 绘制矩形框并标注文字
             f_pic, f_areas_r_lst = fc_server.mark_pic(dets, names, f_pic)

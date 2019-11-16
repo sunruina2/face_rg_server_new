@@ -1,12 +1,15 @@
-# encoding:utf-8
-# !/usr/bin/env python
-import psutil
-import time
+#!/usr/bin/env python
 from threading import Lock
-from flask import Flask, render_template
-from flask_socketio import SocketIO
+from flask import Flask, render_template, session, request, \
+    copy_current_request_context
+from flask_socketio import SocketIO, emit, join_room, leave_room, \
+    close_room, rooms, disconnect
 
+# Set this variable to "threading", "eventlet" or "gevent" to test the
+# different async modes, or leave it set to None for the application to choose
+# the best option based on installed packages.
 async_mode = None
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, async_mode=async_mode)
@@ -14,33 +17,136 @@ thread = None
 thread_lock = Lock()
 
 
-# 后台线程 产生数据，即刻推送至前端
 def background_thread():
+    """Example of how to send server generated events to clients."""
     count = 0
     while True:
-        socketio.sleep(5)
+        socketio.sleep(100)
         count += 1
-        t = time.strftime('%M:%S', time.localtime())
-        # 获取系统时间（只取分:秒）
-        cpus = psutil.cpu_percent(interval=None, percpu=True)
-        # 获取系统cpu使用率 non-blocking
-        socketio.emit('server_response',
-                      {'data': [t, cpus], 'count': count},
+        socketio.emit('my_response',
+                      {'data': 'Server generated event', 'count': count},
                       namespace='/test')
-        # 注意：这里不需要客户端连接的上下文，默认 broadcast = True
 
 
 @app.route('/')
 def index():
-    return render_template('index_tttt.html', async_mode=socketio.async_mode)
+    return render_template('index_getpost.html', async_mode=socketio.async_mode)
+
+
+'''
+1.后端如何得到前端数据
+1）如果前端提交的方法为POST：
+后端接收时要写methods=[‘GET’,‘POST’]
+xx=request.form.get(xx);
+xx=request.form[’‘xx’]
+2）如果是GET
+xx=request.args.get(xx)
+2.后端向前端传数据
+1) 传单个数据`
+return render_template(‘需要传参网址’,xx=u’ xx’)；
+前端接收：
+{{xx}}
+2) 传多个数据
+先把数据写进字典，字典整体传
+return render_template(‘需要传参网址’,**字典名’)；
+前端接收：
+{{字典名.变量名}}
+'''
+
+
+@socketio.on('my_event', namespace='/test')
+def mtest_message(message):
+    session['receive_count'] = session.get('receive_count', 0) + 1
+    print(message)
+    print(message['data'])
+    emit('my_response',
+         {'data': message['data'], 'count': session['receive_count']})
+
+
+@socketio.on('my_broadcast_event', namespace='/test')
+def mtest_broadcast_message(message):
+    print(message)
+    session['receive_count'] = session.get('receive_count', 0) + 1
+    emit('my_response',
+         {'data': message['data'], 'count': session['receive_count']},
+         broadcast=True)
+
+
+@socketio.on('join', namespace='/test')
+def join(message):
+    print(message)
+
+    join_room(message['room'])
+    session['receive_count'] = session.get('receive_count', 0) + 1
+    emit('my_response',
+         {'data': 'In rooms: ' + ', '.join(rooms()),
+          'count': session['receive_count']})
+
+
+@socketio.on('leave', namespace='/test')
+def leave(message):
+    print(message)
+
+    leave_room(message['room'])
+    session['receive_count'] = session.get('receive_count', 0) + 1
+    emit('my_response',
+         {'data': 'In rooms: ' + ', '.join(rooms()),
+          'count': session['receive_count']})
+
+
+@socketio.on('close_room', namespace='/test')
+def close(message):
+    print(message)
+
+    session['receive_count'] = session.get('receive_count', 0) + 1
+    emit('my_response', {'data': 'Room ' + message['room'] + ' is closing.',
+                         'count': session['receive_count']},
+         room=message['room'])
+    close_room(message['room'])
+
+
+@socketio.on('my_room_event', namespace='/test')
+def send_room_message(message):
+    print(message)
+
+    session['receive_count'] = session.get('receive_count', 0) + 1
+    emit('my_response',
+         {'data': message['data'], 'count': session['receive_count']},
+         room=message['room'])
+
+
+@socketio.on('disconnect_request', namespace='/test')
+def disconnect_request():
+    @copy_current_request_context
+    def can_disconnect():
+        disconnect()
+
+    session['receive_count'] = session.get('receive_count', 0) + 1
+    # for this emit we use a callback function
+    # when the callback function is invoked we know that the message has been
+    # received and it is safe to disconnect
+    emit('my_response',
+         {'data': 'Disconnected!', 'count': session['receive_count']},
+         callback=can_disconnect)
+
+
+@socketio.on('my_ping', namespace='/test')
+def ping_pong():
+    emit('my_pong')
 
 
 @socketio.on('connect', namespace='/test')
-def test_connect():
+def mtest_connect():
     global thread
     with thread_lock:
         if thread is None:
-            thread = socketio.start_background_task(target=background_thread)
+            thread = socketio.start_background_task(background_thread)
+    emit('my_response', {'data': 'Connected', 'count': 0})
+
+
+@socketio.on('disconnect', namespace='/test')
+def mtest_disconnect():
+    print('Client disconnected', request.sid)
 
 
 if __name__ == '__main__':

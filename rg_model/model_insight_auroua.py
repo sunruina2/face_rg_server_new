@@ -257,11 +257,11 @@ class InsightPreAuroua():
             loc_similar_most = np.where(cos_sim == sim_p)
             # print(loc_similar_most)
             is_known = 1
-            # print('识别到最相似的人是：', sim_p, self.known_names[loc_similar_most][0])
+            print('识别到最相似的人是：', sim_p, self.known_names[loc_similar_most][0])
             return self.known_names[loc_similar_most][0], is_known, sim_p
         else:
             loc_similar_most = np.where(cos_sim == sim_p)
-            # print('未识别到但最相似的人是：', sim_p, self.known_names[loc_similar_most][0])
+            print('未识别到但最相似的人是：', sim_p, self.known_names[loc_similar_most][0])
             return '0-未知的同学-0', is_known, sim_p
 
     def gen_knowns_db(self, pic_path, pkl_path):
