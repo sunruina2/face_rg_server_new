@@ -38,7 +38,7 @@ imgsize = 112
 trans_01 = 0
 pic_path = '../face_rg_files/common_files/dc_marking_trans_newnanme/'
 pkl_path = '../face_rg_files/embs_pkl/ep_insight_auroua/50w_dc_all.pkl'
-facenet_pre_m.gen_knowns_db(pic_path, pkl_path)
+# facenet_pre_m.gen_knowns_db(pic_path, pkl_path)
 
 '''加在活体检测模型'''
 # anti = AntiSpoofing()
@@ -314,9 +314,9 @@ def lock_video_message(message):
 @socketio.on('add_new', namespace='/test_conn')  # 消息实时传送
 def add_new_message(message):
     global frame_rg_list, photo_rg_list, monitor_dct
-    print(message)
+    # print(message)
     para = dict(message)
-    print(para)
+    # print(para)
     p_id_input = para['P1']
     p_angle_input = para['P2']
     res_json = {'app_data': {}, 'app_status': '1'}
@@ -325,7 +325,7 @@ def add_new_message(message):
     if p_id_input in all_officeinfo_dct.keys():
 
         if len(photo_rg_list) == 2 and photo_rg_list[0] != []:
-            print(photo_rg_list)
+            # print(photo_rg_list)
             raw_pic = photo_rg_list[0]
             p1_crop = photo_rg_list[1]['p1_crop']
             p1_emb = photo_rg_list[1]['p1_emb']
