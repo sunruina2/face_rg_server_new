@@ -16,7 +16,7 @@ import multiprocessing
 from data_pro.data_utils import is_birthday
 from anti.anti_pre import AntiSpoofing
 from rg_model.model_insight_auroua import InsightPreAuroua
-
+from threading import Lock
 
 # from rg_model.model_facenet import FacenetPre
 # facenet_pre_m = FacenetPre()
@@ -52,15 +52,18 @@ print('all_office_num', len(all_officeinfo_dct))
 
 '''设置全局变量'''
 # flask 类
+async_mode = None
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode=async_mode)
+thread = None
+thread_lock = Lock()
 # 多进程类
 multi_p = None
 # 摄像头类
 camera, c_w, c_h = None, 1280, 720
 # 实时识别结果存储，长度为帧中人数+1
-frame_rg_list = [[], {}]
+frame_rg_list = [[], {'p1_id': '无人', 'p1_crop': [], 'p1_emb': []}]
 # 无人：[img视频原图]，有人：[img视频原图， {工号1: 33677，人脸图片: crop_img，向量: emb} , ... , {工号n: 46119，人脸图片: crop_img，向量: emb} ]
 # 单人模式上一帧emb临时存储，当前人的frame流历史最大准确识别
 last_1p_emb = np.zeros(512)
@@ -76,19 +79,21 @@ para_dct = {'mtcnn_minsize': int(0.2 * min(c_w, c_h)), 'night_start_h': 17, 'cle
 
 
 def rg_1frame(f_pic):
-    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:rg_1frame')
+    # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:rg_1frame')
 
     global para_dct, frame_rg_list, last_1p_emb, his_maxacc
     now_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
 
     # 获取人脸, 由于frame色彩空间rgb不对应问题，需统一转为灰色图片
     dets, crop_images_at, point5_at, crop_images_rg, point5_rg, align_flag = fc_server.load_and_align_data(f_pic,
-                                                                                                           para_dct['det_para'],
+                                                                                                           para_dct[
+                                                                                                               'det_para'],
                                                                                                            minsize=90)
 
     if align_flag != 0:
         # 清晰度过滤，仅检测人脸概率最大的那个人的清晰度。
-        is_qingxi1, is_qingxi0 = brenner(cv2.cvtColor(np.asarray(crop_images_rg[0], np.float32), cv2.COLOR_BGR2GRAY))  # is_qingxi1是枞向运动模糊方差，0是横向
+        is_qingxi1, is_qingxi0 = brenner(
+            cv2.cvtColor(np.asarray(crop_images_rg[0], np.float32), cv2.COLOR_BGR2GRAY))  # is_qingxi1是枞向运动模糊方差，0是横向
         now_hour = int(now_time[8:10])
         if now_hour >= para_dct['night_start_h']:
             qx_hold = para_dct['clear_night']
@@ -97,9 +102,9 @@ def rg_1frame(f_pic):
         if is_qingxi1 >= qx_hold and is_qingxi0 >= qx_hold:  # 有人且清晰，则画人脸，进行识别名字
 
             '''人脸识别'''
-            names, faceis_konwns, faceembs, sims = facenet_pre_m.imgs_get_names(crop_images_rg, batchsize=len(dets))  # 获取人脸名字
+            names, faceis_konwns, faceembs, sims = facenet_pre_m.imgs_get_names(crop_images_rg,
+                                                                                batchsize=len(dets))  # 获取人脸名字
             ids_cut = [i.split('-')[0] for i in names]
-
             '''活体检测'''
             # anti_flag_list = []
             # for i in range(len(dets)):
@@ -157,11 +162,17 @@ def rg_1frame(f_pic):
     else:  # 无人
         frame_rg_list.append({'p1_id': '无人', 'p1_crop': [], 'p1_emb': []})
 
+    # 离线测试
+    # get_name_message_test()
+    # get_video_message_test()
+    # lock_video_message_test()
+    # add_new_message_test({'P1': '04611511', 'P2': '正面'})
+
     return frame_rg_list
 
 
 def camera_open():
-    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:camera_open')
+    # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:camera_open')
     camera1 = VideoStream(0)
     camera1.stream.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc('Y', 'U', 'Y', 'V'))
     camera1.stream.stream.set(cv2.CAP_PROP_FRAME_WIDTH, c_w)
@@ -170,19 +181,19 @@ def camera_open():
     return camera1
 
 
-def f():
-    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:f')
+def background_thread():
+    # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:f')
 
     global camera
     if not camera:
         camera = camera_open()
-        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:f camera')
+        # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:f camera')
 
     i = 0  # 统计fps的时间
     start_flag = time.time()
     while 1:
         frame = camera.read()
-        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:f while 1')
+        # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:f while 1')
 
         i += 1  # 统计fps的时间,计算每间隔了1s，会处理几张frame
         interval = int(time.time() - start_flag)
@@ -203,106 +214,125 @@ def f():
 
 @app.route('/')
 def index():
-    return render_template('index_video.html')
+    return render_template('index_socket.html', async_mode=socketio.async_mode)
 
 
-@socketio.on('connect', namespace='/test_conn')  # 建立通讯连接
-def test_message():
-    print('client connect to test_conn')
-    global multi_p
-    multi_p = multiprocessing.Process(target=f)
-    multi_p.start()
+@socketio.on('connect', namespace='/test_conn')
+def connect_message():
+    global thread
+    with thread_lock:
+        if thread is None:
+            thread = socketio.start_background_task(background_thread)
+
+    res_json = {'app_status': '1', 'app_data': {'message': '链接成功'}}
+    res_json = json.dumps(res_json)
+    emit('connect_response', res_json)
 
 
 @socketio.on('get_name', namespace='/test_conn')  # 消息实时传送
-def test_message(message):
-    # print(message)
-    global frame_rg_list, all_officeinfo_dct
-    res_json = {'app_data': {}, 'app_status': '1'}
+def get_name_message(message):
+    while 1:
+        time.sleep(1)
+        global frame_rg_list, all_officeinfo_dct
+        res_json = {'app_data': {'message': '识别成功'}, 'app_status': '1'}
+        # print(frame_rg_list[1])
+        # print(np.asarray(frame_rg_list[0]).shape)
+        p1_id = frame_rg_list[1]['p1_id']
+        if p1_id not in ['不清晰', '无人']:
+            for i in range(len(frame_rg_list)):
+                if i == 0:  # list里第一项是原图，此处不需要，take photo的时候才需要
+                    pass
+                elif i in [1, 2, 3, 4]:
+                    if p1_id != '0':
+                        c_name = all_officeinfo_dct[p1_id][0]
+                        e_name = all_officeinfo_dct[p1_id][1]
+                        is_birth = is_birthday(all_officeinfo_dct[p1_id][2])
+                    else:
+                        c_name = '未识别的同学'
+                        e_name = 'unknown'
+                        is_birth = '0'
+                    # _, jpeg = cv2.imencode('.jpg', frame_rg_list[i]['p1_crop'])
+                    # crop_img = jpeg.tobytes()
 
-    p1_id = frame_rg_list[1]['p1_id']
-    if p1_id not in ['不清晰', '无人']:
+                    crop_img = np.asarray(frame_rg_list[i]['p1_crop'], dtype=int).tolist()
 
-        for i in range(len(frame_rg_list)):
-            if i == 0:  # list里第一项是原图，此处不需要，photo的时候才需要
-                pass
-            elif i in [1, 2, 3, 4]:
-                c_name = all_officeinfo_dct[p1_id][0]
-                e_name = all_officeinfo_dct[p1_id][1]
-                is_birth = is_birthday(all_officeinfo_dct[p1_id][2])
-                _, jpeg = cv2.imencode('.jpg', frame_rg_list[i]['p1_crop'])
-                crop_img = jpeg.tobytes()
+                    res_json['app_data']['P_' + str(i)] = {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name,
+                                                           'is_birth': is_birth, 'crop_img': crop_img}
+                else:  # 只显示前人脸概率最大的前4个人
+                    break
+        else:
+            res_json = {'app_data': {'message': '本帧无效'}, 'app_status': '0'}
 
-                res_json['rg_data']['P_' + str(i)] = {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name,
-                                                      'is_birth': is_birth, 'crop_img': crop_img}
-            else:  # 只显示前人脸概率最大的前4个人
-                break
-    else:
-        res_json = {'app_data': {}, 'app_status': '0'}
+        # res_json = {'app_data': {'message': '识别成功'
+        #                         '工号0': {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name, 'is_birth': is_birth, 'crop_img': crop_img},
+        #                         '工号1': {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name, 'is_birth': is_birth, 'crop_img': crop_img}},
+        #             'app_status': '1'}
 
-    # res_json = {'rg_data': {'工号0': {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name, 'is_birth': is_birth, 'crop_img': crop_img},
-    #                         '工号1': {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name, 'is_birth': is_birth, 'crop_img': crop_img}},
-    #             'rg_status': '1'}
-
-    res_json = json.dumps(res_json)
-    emit('get_video_response', res_json)
+        res_json = json.dumps(res_json)
+        # res_json = {'app_data': {'message': '识别成功', 'P_1': {'p1_id': '046115', 'c_name': '孙瑞娜', 'e_name': 'sunruina', 'is_birth': '0', 'crop_img': [[[8.0, 9.0, 11.0], [121.0, 134.0, 152.0]]]}}, 'app_status': '1'}
+        emit('get_name_response', res_json.encode("utf-8").decode("utf-8"))
 
 
 @socketio.on('get_video', namespace='/test_conn')  # 消息实时传送
-def test_message(message):
-    # print(message)
-    global frame_rg_list
-    res_json = {'app_data': {}, 'app_status': '1'}
+def get_video_message(message):
+    while 1:
+        time.sleep(1)
+        global frame_rg_list
+        res_json = {'app_data': {'message': '获取实时帧成功'}, 'app_status': '1'}
 
-    raw_pic = frame_rg_list[0]
-    _, raw_pic = cv2.imencode('.jpg', raw_pic)
-    res_json['app_data']['video_pic'] = raw_pic.tobytes()
+        # raw_pic = frame_rg_list[0]
+        # _, raw_pic = cv2.imencode('.jpg', raw_pic)
+        # res_json['app_data']['video_pic'] = raw_pic.tobytes()
 
-    res_json = json.dumps(res_json)
-    emit('get_video_response', res_json)
+        res_json['app_data']['video_pic'] = np.asarray(frame_rg_list[0], dtype=int).tolist()
+        res_json = json.dumps(res_json)
+        # res_json = {"app_data": {"message": "获取实时帧成功", "video_pic": [[[8.0, 9.0, 11.0], [121.0, 134.0, 152.0]]]}, "app_status": "1"}
+        emit('get_video_response', res_json)
 
 
 @socketio.on('lock_video', namespace='/test_conn')  # 消息实时传送
-def test_message(message):
+def lock_video_message(message):
     global frame_rg_list, photo_rg_list
-    res_json = {'app_data': {}, 'app_status': '1'}
+    res_json = {'app_data': {'message': '图片有效'}, 'app_status': '1'}
 
-    if len(frame_rg_list) == 2:
-        raw_pic = frame_rg_list[0]
-        _, raw_pic = cv2.imencode('.jpg', raw_pic)
-        res_json['app_data']['video_pic'] = raw_pic.tobytes()
+    if len(frame_rg_list) == 2 and frame_rg_list[1]['p1_id'] not in ['无人', '不清晰']:
+        # raw_pic = frame_rg_list[0]
+        # _, raw_pic = cv2.imencode('.jpg', raw_pic)
+        # res_json['app_data']['video_pic'] = raw_pic.tobytes()
+        res_json['app_data']['video_pic'] = np.asarray(frame_rg_list[0], dtype=int).tolist()
+
         photo_rg_list = frame_rg_list
-    else:
-        photo_rg_list = []
 
+    else:
+        res_json = {'app_data': {'message': '图片无效'}, 'app_status': '0'}
+        photo_rg_list = []
     res_json = json.dumps(res_json)
-    emit('get_video_response', res_json)
+    emit('lock_video_response', res_json)
 
 
 @socketio.on('add_new', namespace='/test_conn')  # 消息实时传送
-def test_message(message):
+def add_new_message(message):
     global frame_rg_list, photo_rg_list, monitor_dct
     para = dict(message)
-    p_id = para['P1']
-    p_angle = para['P2']
+    p_id_input = para['P1']
+    p_angle_input = para['P2']
     res_json = {'app_data': {}, 'app_status': '1'}
     # 只差这里了
 
-    if p_id in all_officeinfo_dct.keys():
+    if p_id_input in all_officeinfo_dct.keys():
 
         if len(photo_rg_list) == 2:
             raw_pic = photo_rg_list[0]
-            p1_id = photo_rg_list[1]['p1_id']
             p1_crop = photo_rg_list[1]['p1_crop']
             p1_emb = photo_rg_list[1]['p1_emb']
             time_stamp = time.strftime("%Y%m%d%H%M%S", time.localtime())
-            pic_name = p1_id + '-' + all_officeinfo_dct[p1_id]['c_name'] + '-' + time_stamp+p_angle
+            pic_name = p_id_input + '-' + all_officeinfo_dct[p_id_input][0] + '-' + time_stamp + p_angle_input
             monitor_dct['add_n'] += 1
 
             facenet_pre_m.known_embs = np.insert(facenet_pre_m.known_embs, 0, values=np.asarray(p1_emb), axis=0)
             facenet_pre_m.known_vms = np.insert(facenet_pre_m.known_vms, 0, values=np.linalg.norm(p1_emb), axis=0)
             facenet_pre_m.known_names = np.insert(facenet_pre_m.known_names, 0, values=np.asarray(pic_name), axis=0)
-            cv2.imwrite(para_dct['savepic_path'] + 'photos/' + pic_name + '_crop.jpg', raw_pic)
+            cv2.imwrite(para_dct['savepic_path'] + 'photos/' + pic_name + '_crop.jpg', p1_crop)
             cv2.imwrite(para_dct['savepic_path'] + 'photos/' + pic_name + '_raw.jpg', raw_pic)
             res_json['app_data'] = {'message': '录入成功'}
         else:
@@ -313,20 +343,8 @@ def test_message(message):
         res_json['app_data'] = {'message': '工号不存在'}
 
     res_json = json.dumps(res_json)
-    emit('get_video_response', res_json)
-
-
-# def test_message_def():
-#     print('client connect to test_conn')
-#     f()
-
-    # global multi_p
-    # multi_p = multiprocessing.Process(target=f)
-    # multi_p.start()
+    emit('add_new_response', res_json)
 
 
 if __name__ == '__main__':
-    # socketio.run(app, debug=True, port=5000)
-    socketio.run(app, port=5000)
-
-    # test_message_def()
+    socketio.run(app, host='0.0.0.0', port=5000)

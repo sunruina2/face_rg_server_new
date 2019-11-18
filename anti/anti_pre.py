@@ -6,7 +6,7 @@ import os
 
 
 class AntiSpoofing():
-    def __init__(self, img_size=(256, 256), model_path='epoch_best.pth', Threshold=0.1, stretch=False, device='cpu'):
+    def __init__(self, img_size=(256, 256), model_path='epoch_best_contr.pth', Threshold=0.02, stretch=False, device='cpu'):
         super(AntiSpoofing, self).__init__()
         self.img_size = img_size
 
