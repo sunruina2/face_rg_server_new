@@ -36,9 +36,9 @@ facenet_pre_m = InsightPreAuroua()
 lastsave_embs0 = np.zeros(512)
 imgsize = 112
 trans_01 = 0
-pic_path = '/Users/finup/Desktop/rg/face_rg_files/common_files/dc_marking_trans_newnanme/'
+pic_path = '../face_rg_files/common_files/dc_marking_trans_newnanme/'
 pkl_path = '../face_rg_files/embs_pkl/ep_insight_auroua/50w_dc_all.pkl'
-# facenet_pre_m.gen_knowns_db(pic_path, pkl_path)
+facenet_pre_m.gen_knowns_db(pic_path, pkl_path)
 
 '''加在活体检测模型'''
 # anti = AntiSpoofing()
