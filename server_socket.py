@@ -76,7 +76,7 @@ photo_rg_list = [[], {}]  # 无效：[]，仅1人时有效变量长度为2：[im
 monitor_dct = {'add_n': 0}
 # 模型超参
 para_dct = {'mtcnn_minsize': int(0.2 * min(c_w, c_h)), 'night_start_h': 17, 'clear_day': 100, 'clear_night': 50,
-            'savepic_path': '../face_rg_files/save_pics/stream/',
+            'savepic_path': '../face_rg_files/save_pics/',
             'rg_sim': 0.75, 'frame_sim': 0.8, 'det_para': [256, 0.1, 112, 0.0]}
 
 
@@ -140,7 +140,7 @@ def rg_1frame(f_pic):
                 # 单人模式实时流随机保存
                 sead = hash(str(time.time())[-6:])
                 if sead % 2 == 1:  # hash采样
-                    fpic_path = para_dct['savepic_path'] + now_time + '_' + is_same_t + '-' + str(
+                    fpic_path = para_dct['savepic_path'] + 'stream/' + now_time + '_' + is_same_t + '-' + str(
                         is_same_p[0])[2:4] + '_' + str(int(is_qingxi1)) + '-' + str(int(is_qingxi0)) + '_' + str(
                         sims[0])[2:4]
                     cv2.imwrite(fpic_path + '_crop_@' + names[0] + '.jpg', crop_images_rg[0])
@@ -164,12 +164,6 @@ def rg_1frame(f_pic):
     else:  # 无人
         frame_rg_list.append({'p1_id': '无人', 'p1_crop': [], 'p1_emb': []})
 
-    # 离线测试
-    # get_name_message_test()
-    # get_video_message_test()
-    # lock_video_message_test()
-    # add_new_message_test({'P1': '04611511', 'P2': '正面'})
-
     return frame_rg_list
 
 
@@ -184,18 +178,15 @@ def camera_open():
 
 
 def background_thread():
-    # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:f')
 
     global camera
     if not camera:
         camera = camera_open()
-        # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:f camera')
 
     i = 0  # 统计fps的时间
     start_flag = time.time()
     while 1:
         frame = camera.read()
-        # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:f while 1')
 
         i += 1  # 统计fps的时间,计算每间隔了1s，会处理几张frame
         interval = int(time.time() - start_flag)
@@ -209,14 +200,13 @@ def background_thread():
             rg_1frame(frame)
 
         else:
-            # print('img_None')
             camera = camera_open  # 摄像头失效抓取为空，则重启摄像头
             continue
 
 
 @app.route('/')
 def index():
-    return render_template('index_socket.html', async_mode=socketio.async_mode)
+    return render_template('index_v2.html', async_mode=socketio.async_mode)
 
 
 @socketio.on('connect', namespace='/test_conn')
@@ -235,11 +225,12 @@ def connect_message():
 def get_name_message(message):
     global api_status
     para = dict(message)
-    print(para)
 
     api_status = para['api_status']
     if api_status == 'get_name_status':
         while 1:
+            print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
+
             time.sleep(0.2)
             global frame_rg_list, all_officeinfo_dct
             res_json = {'app_data': {'message': '识别成功'}, 'app_status': '1'}
@@ -263,21 +254,13 @@ def get_name_message(message):
                         # crop_img = jpeg.tobytes()
 
                         crop_img = np.asarray(frame_rg_list[i]['p1_crop'], dtype=int).tolist()
-
-                        res_json['app_data']['P_' + str(i)] = {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name,
-                                                               'is_birth': is_birth, 'crop_img': crop_img}
+                        res_json['app_data']['P_' + str(i)] = {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name, 'is_birth': is_birth, 'crop_img': crop_img}
                     else:  # 只显示前人脸概率最大的前4个人
                         break
             else:
                 res_json = {'app_data': {'message': '本帧无效'}, 'app_status': '0'}
 
-            # res_json = {'app_data': {'message': '识别成功'
-            #                         '工号0': {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name, 'is_birth': is_birth, 'crop_img': crop_img},
-            #                         '工号1': {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name, 'is_birth': is_birth, 'crop_img': crop_img}},
-            #             'app_status': '1'}
-
             res_json = json.dumps(res_json)
-            # res_json = {'app_data': {'message': '识别成功', 'P_1': {'p1_id': '046115', 'c_name': '孙瑞娜', 'e_name': 'sunruina', 'is_birth': '0', 'crop_img': [[[8.0, 9.0, 11.0], [121.0, 134.0, 152.0]]]}}, 'app_status': '1'}
             emit('get_name_response', res_json.encode("utf-8").decode("utf-8"))
 
 
@@ -290,6 +273,8 @@ def get_video_message(message):
     api_status = para['api_status']
     if api_status == 'get_video_status':
         while 1:
+            print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
+
             time.sleep(0.2)
             global frame_rg_list
             res_json = {'app_data': {'message': '获取实时帧成功'}, 'app_status': '1'}
@@ -297,11 +282,13 @@ def get_video_message(message):
             # raw_pic = frame_rg_list[0]
             # _, raw_pic = cv2.imencode('.jpg', raw_pic)
             # res_json['app_data']['video_pic'] = raw_pic.tobytes()
-
-            res_json['app_data']['video_pic'] = np.asarray(cv2.resize(frame_rg_list[0], (int(c_w*0.20), int(c_h*0.20))), dtype=int).tolist()
-            # res_json['app_data']['video_pic'] = np.asarray([], dtype=int).tolist()
-            res_json = json.dumps(res_json)
-            # res_json = {"app_data": {"message": "获取实时帧成功", "video_pic": [[[8.0, 9.0, 11.0], [121.0, 134.0, 152.0]]]}, "app_status": "1"}
+            if frame_rg_list[0] != []:
+                res_json['app_data']['video_pic'] = np.asarray(cv2.resize(frame_rg_list[0], (int(c_w*0.20), int(c_h*0.20))), dtype=int).tolist()
+                # res_json['app_data']['video_pic'] = np.asarray([], dtype=int).tolist()
+                res_json = json.dumps(res_json)
+                # res_json = {"app_data": {"message": "获取实时帧成功", "video_pic": [[[8.0, 9.0, 11.0], [121.0, 134.0, 152.0]]]}, "app_status": "1"}
+            else:
+                res_json = {'app_data': {'message': '获取实时帧失败'}, 'app_status': '0'}
             emit('get_video_response', res_json)
 
 
@@ -312,6 +299,7 @@ def lock_video_message(message):
     print(para)
     api_status = para['api_status']
     if api_status == 'lock_video_status':
+        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
         global frame_rg_list, photo_rg_list
         res_json = {'app_data': {'message': '图片有效'}, 'app_status': '1'}
 
@@ -326,7 +314,9 @@ def lock_video_message(message):
         else:
             res_json = {'app_data': {'message': '图片无效'}, 'app_status': '0'}
             photo_rg_list = []
+
         res_json = json.dumps(res_json)
+        api_status = 'yyyyy'
         emit('lock_video_response', res_json)
 
 
@@ -337,6 +327,7 @@ def add_new_message(message):
     print(para)
     api_status = para['api_status']
     if api_status == 'add_new_status':
+        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
         global frame_rg_list, photo_rg_list, monitor_dct
         p_id_input = para['P1']
         p_angle_input = para['P2']
@@ -344,6 +335,7 @@ def add_new_message(message):
 
         if p_id_input in all_officeinfo_dct.keys():
             if len(photo_rg_list) == 2 and photo_rg_list[0] != []:
+
                 # print(photo_rg_list)
                 raw_pic = photo_rg_list[0]
                 p1_crop = photo_rg_list[1]['p1_crop']
@@ -355,20 +347,26 @@ def add_new_message(message):
                 facenet_pre_m.known_embs = np.insert(facenet_pre_m.known_embs, 0, values=np.asarray(p1_emb), axis=0)
                 facenet_pre_m.known_vms = np.insert(facenet_pre_m.known_vms, 0, values=np.linalg.norm(p1_emb), axis=0)
                 facenet_pre_m.known_names = np.insert(facenet_pre_m.known_names, 0, values=np.asarray(pic_name), axis=0)
+                print(para_dct['savepic_path'] + 'photos/' + pic_name + '_crop.jpg')
                 cv2.imwrite(para_dct['savepic_path'] + 'photos/' + pic_name + '_crop.jpg', p1_crop)
                 cv2.imwrite(para_dct['savepic_path'] + 'photos/' + pic_name + '_raw.jpg', raw_pic)
                 res_json['app_data'] = {'message': '录入成功'}
             elif len(photo_rg_list) == 2 and photo_rg_list[0] == []:
+
                 res_json['app_status'] = '3'
                 res_json['app_data'] = {'message': '尚未拍照'}
             else:
+
                 res_json['app_status'] = '2'
                 res_json['app_data'] = {'message': '照片无效'}
         else:
+
             res_json['app_status'] = '0'
             res_json['app_data'] = {'message': '工号不存在'}
 
         res_json = json.dumps(res_json)
+        photo_rg_list = [[], {}]  # 添加完信息后，把以保存的注空
+        api_status = 'xxxxxx'
         emit('add_new_response', res_json)
 
 
