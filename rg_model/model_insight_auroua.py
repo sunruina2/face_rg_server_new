@@ -195,7 +195,7 @@ class InsightPreAuroua():
         v = np.reshape(v, (1, len(v)))  # 变为1行
         num = np.dot(vs, v.T)  # (N, 1)
         denom = np.linalg.norm(v) * vs_norm  # [|A|=float] * [|B|= reshape( (N,), (N,1) ) ] = (N, 1)
-        cos = num / denom  # 余弦值 A * B / |A| * |B| 本身也是0-1之间的...
+        cos = num / denom  # 余弦值 A * B / |A| * |B| 本身也是0-1之间的... operands could not be broadcast together with shapes (2033,1) (2034,1)
 
         sim = 0.5 + 0.5 * cos  # 归一化到0-1之间, (N, 1)
 
