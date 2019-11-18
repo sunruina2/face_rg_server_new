@@ -232,7 +232,7 @@ def connect_message():
 @socketio.on('get_name', namespace='/test_conn')  # 消息实时传送
 def get_name_message(message):
     while 1:
-        time.sleep(1)
+        time.sleep(0.2)
         global frame_rg_list, all_officeinfo_dct
         res_json = {'app_data': {'message': '识别成功'}, 'app_status': '1'}
         # print(frame_rg_list[1])
@@ -276,7 +276,7 @@ def get_name_message(message):
 @socketio.on('get_video', namespace='/test_conn')  # 消息实时传送
 def get_video_message(message):
     while 1:
-        time.sleep(1)
+        time.sleep(0.2)
         global frame_rg_list
         res_json = {'app_data': {'message': '获取实时帧成功'}, 'app_status': '1'}
 
@@ -284,7 +284,8 @@ def get_video_message(message):
         # _, raw_pic = cv2.imencode('.jpg', raw_pic)
         # res_json['app_data']['video_pic'] = raw_pic.tobytes()
 
-        res_json['app_data']['video_pic'] = np.asarray(frame_rg_list[0], dtype=int).tolist()
+        res_json['app_data']['video_pic'] = np.asarray(cv2.resize(frame_rg_list[0], (int(c_w*0.20), int(c_h*0.20))), dtype=int).tolist()
+        # res_json['app_data']['video_pic'] = np.asarray([], dtype=int).tolist()
         res_json = json.dumps(res_json)
         # res_json = {"app_data": {"message": "获取实时帧成功", "video_pic": [[[8.0, 9.0, 11.0], [121.0, 134.0, 152.0]]]}, "app_status": "1"}
         emit('get_video_response', res_json)
@@ -299,7 +300,7 @@ def lock_video_message(message):
         # raw_pic = frame_rg_list[0]
         # _, raw_pic = cv2.imencode('.jpg', raw_pic)
         # res_json['app_data']['video_pic'] = raw_pic.tobytes()
-        res_json['app_data']['video_pic'] = np.asarray(frame_rg_list[0], dtype=int).tolist()
+        res_json['app_data']['video_pic'] = np.asarray(cv2.resize(frame_rg_list[0], (int(c_w*0.20), int(c_h*0.20))), dtype=int).tolist()
 
         photo_rg_list = frame_rg_list
 
@@ -313,7 +314,9 @@ def lock_video_message(message):
 @socketio.on('add_new', namespace='/test_conn')  # 消息实时传送
 def add_new_message(message):
     global frame_rg_list, photo_rg_list, monitor_dct
+    print(message)
     para = dict(message)
+    print(para)
     p_id_input = para['P1']
     p_angle_input = para['P2']
     res_json = {'app_data': {}, 'app_status': '1'}
@@ -321,7 +324,8 @@ def add_new_message(message):
 
     if p_id_input in all_officeinfo_dct.keys():
 
-        if len(photo_rg_list) == 2:
+        if len(photo_rg_list) == 2 and photo_rg_list[0] != []:
+            print(photo_rg_list)
             raw_pic = photo_rg_list[0]
             p1_crop = photo_rg_list[1]['p1_crop']
             p1_emb = photo_rg_list[1]['p1_emb']
@@ -335,6 +339,9 @@ def add_new_message(message):
             cv2.imwrite(para_dct['savepic_path'] + 'photos/' + pic_name + '_crop.jpg', p1_crop)
             cv2.imwrite(para_dct['savepic_path'] + 'photos/' + pic_name + '_raw.jpg', raw_pic)
             res_json['app_data'] = {'message': '录入成功'}
+        elif len(photo_rg_list) == 2 and photo_rg_list[0] == []:
+            res_json['app_status'] = '3'
+            res_json['app_data'] = {'message': '尚未拍照'}
         else:
             res_json['app_status'] = '2'
             res_json['app_data'] = {'message': '照片无效'}
