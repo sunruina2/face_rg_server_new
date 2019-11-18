@@ -357,7 +357,7 @@ class InsightPreAuroua():
         return fpr, tpr, threshold
 
 
-global_pkl_path = '/Users/finup/Desktop/rg/face_rg_files/embs_pkl/ep_insight_auroua/*'
+global_pkl_path = '../face_rg_files/embs_pkl/ep_insight_auroua/*'
 
 # if __name__ == "__main__":
 #     '''产生k&uk的embs'''
