@@ -57,7 +57,7 @@ api_status = '静默'
 async_mode = None
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, async_mode=async_mode)
+socketio = SocketIO(app, async_mode=async_mode, cors_allowed_origins='*')
 thread = None
 thread_lock = Lock()
 # 多进程类
@@ -78,6 +78,7 @@ monitor_dct = {'add_n': 0}
 para_dct = {'mtcnn_minsize': int(0.2 * min(c_w, c_h)), 'night_start_h': 17, 'clear_day': 100, 'clear_night': 50,
             'savepic_path': '../face_rg_files/save_pics/',
             'rg_sim': 0.75, 'frame_sim': 0.8, 'det_para': [256, 0.1, 112, 0.0]}
+
 
 
 def rg_1frame(f_pic):
@@ -220,6 +221,14 @@ def connect_message():
     emit('connect_response', res_json)
 
 
+# @app.route("/cropimg/<user_id>")
+# def get_crop_img(user_id):
+#     imgPath = "丽江/{}.jpg".format(user_id)
+#     with open(imgPath, 'rb') as f:
+#         image = f.read()
+#     return Response(image, mimetype='image/jpeg')
+
+
 @socketio.on('get_name', namespace='/test_conn')  # 消息实时传送
 def get_name_message(message):
     global api_status
@@ -228,7 +237,7 @@ def get_name_message(message):
         print('1111@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
         time.sleep(0.2)
         global frame_rg_list, all_officeinfo_dct
-        res_json = {'app_data': {'api_name': 'add_new', 'message': '识别成功'}, 'app_status': '1'}
+        res_json = {'app_data': {'message': '识别成功'}, 'app_status': '1'}
         # print(frame_rg_list[1])
         # print(np.asarray(frame_rg_list[0]).shape)
         p1_id = frame_rg_list[1]['p1_id']
@@ -250,6 +259,9 @@ def get_name_message(message):
                     crop_img = np.asarray(frame_rg_list[i]['p1_crop'], dtype=int).tolist()
                     res_json['app_data']['P_' + str(i)] = {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name,
                                                            'is_birth': is_birth, 'crop_img': crop_img}
+
+                    # res_json['app_data']['P_' + str(i)] = {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name,
+                    #                                        'is_birth': is_birth, 'crop_img': '172.16.33.138:5000/cropimg/'+p1_id}
                 else:  # 只显示前人脸概率最大的前4个人
                     break
         else:
@@ -266,7 +278,7 @@ def get_video_message(message):
         print('2222@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
         time.sleep(0.2)
         global frame_rg_list
-        res_json = {'app_data': {'api_name': 'add_new', 'message': '获取实时帧成功'}, 'app_status': '1'}
+        res_json = {'app_data': {'message': '获取实时帧成功'}, 'app_status': '1'}
         # raw_pic = frame_rg_list[0]
         # _, raw_pic = cv2.imencode('.jpg', raw_pic)
         # res_json['app_data']['video_pic'] = raw_pic.tobytes()
@@ -288,15 +300,13 @@ def lock_video_message(message):
     if api_status == 'lock_video_status':
         print('3333@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
         global frame_rg_list, photo_rg_list
-        res_json = {'app_data': {'api_name': 'add_new', 'message': '图片有效'}, 'app_status': '1'}
+        res_json = {'app_data': {'message': '图片有效'}, 'app_status': '1'}
 
         if len(frame_rg_list) == 2 and frame_rg_list[1]['p1_id'] not in ['无人', '不清晰']:
             # raw_pic = frame_rg_list[0]
             # _, raw_pic = cv2.imencode('.jpg', raw_pic)
             # res_json['app_data']['video_pic'] = raw_pic.tobytes()
-            res_json['app_data']['video_pic'] = np.asarray(
-                cv2.resize(frame_rg_list[0], (int(c_w * 0.20), int(c_h * 0.20))), dtype=int).tolist()
-
+            res_json['app_data']['video_pic'] = np.asarray(cv2.resize(frame_rg_list[0], (int(c_w * 0.20), int(c_h * 0.20))), dtype=int).tolist()
             photo_rg_list = frame_rg_list
 
         else:
@@ -317,7 +327,7 @@ def add_new_message(message):
         global frame_rg_list, photo_rg_list, monitor_dct
         p_id_input = para['P1']
         p_angle_input = para['P2']
-        res_json = {'app_data': {'api_name': 'add_new'}, 'app_status': '1'}
+        res_json = {'app_data': {'message': '录入成功'}, 'app_status': '1'}
 
         if p_id_input in all_officeinfo_dct.keys():
             if len(photo_rg_list) == 2 and photo_rg_list[0] != []:
@@ -336,7 +346,6 @@ def add_new_message(message):
                 print(para_dct['savepic_path'] + 'photos/' + pic_name + '_crop.jpg')
                 cv2.imwrite(para_dct['savepic_path'] + 'photos/' + pic_name + '_crop.jpg', p1_crop)
                 cv2.imwrite(para_dct['savepic_path'] + 'photos/' + pic_name + '_raw.jpg', raw_pic)
-                res_json['app_data'] = {'message': '录入成功'}
             elif len(photo_rg_list) == 2 and photo_rg_list[0] == []:
 
                 res_json['app_status'] = '3'
@@ -356,4 +365,6 @@ def add_new_message(message):
 
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', debug=True, port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000)
+    # nohup /usr/bin/python3 -u server_socket.py > /root/v2_face_rg/nohup.out 2>&1 &
+    # tail -f /root/face_rg_server/nohup.out
