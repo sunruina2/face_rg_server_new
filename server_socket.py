@@ -217,7 +217,7 @@ def connect_message():
             thread = socketio.start_background_task(background_thread)
 
     res_json = {'app_status': '1', 'app_data': {'message': '链接成功'}}
-    res_json = json.dumps(res_json)
+    # res_json = json.dumps(res_json)
     emit('connect_response', res_json)
 
 
@@ -235,7 +235,7 @@ def get_name_message(message):
     api_status = 'get_name_status'
     while api_status == 'get_name_status':
         print('1111@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
-        time.sleep(0.2)
+        time.sleep(1)
         global frame_rg_list, all_officeinfo_dct
         res_json = {'app_data': {'message': '识别成功'}, 'app_status': '1'}
         # print(frame_rg_list[1])
@@ -266,8 +266,8 @@ def get_name_message(message):
                     break
         else:
             res_json = {'app_data': {'message': '本帧无效'}, 'app_status': '0'}
-        res_json = json.dumps(res_json)
-        emit('get_name_response', res_json.encode("utf-8").decode("utf-8"))
+        # res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
+        emit('get_name_response', res_json)
 
 
 @socketio.on('get_video', namespace='/test_conn')  # 消息实时传送
@@ -276,7 +276,7 @@ def get_video_message(message):
     api_status = 'get_video_status'
     while api_status == 'get_video_status':
         print('2222@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
-        time.sleep(0.2)
+        time.sleep(0.1)
         global frame_rg_list
         res_json = {'app_data': {'message': '获取实时帧成功'}, 'app_status': '1'}
         # raw_pic = frame_rg_list[0]
@@ -284,12 +284,12 @@ def get_video_message(message):
         # res_json['app_data']['video_pic'] = raw_pic.tobytes()
         if len(frame_rg_list[0]) != 0:
             res_json['app_data']['video_pic'] = np.asarray(
-                cv2.resize(frame_rg_list[0], (int(c_w * 0.20), int(c_h * 0.20))), dtype=int).tolist()
+                cv2.resize(frame_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))), dtype=int).tolist()
             # res_json['app_data']['video_pic'] = np.asarray([], dtype=int).tolist()
-            res_json = json.dumps(res_json)
             # res_json = {"app_data": {"message": "获取实时帧成功", "video_pic": [[[8.0, 9.0, 11.0], [121.0, 134.0, 152.0]]]}, "app_status": "1"}
         else:
             res_json = {'app_data': {'message': '获取实时帧失败'}, 'app_status': '0'}
+        # res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
         emit('get_video_response', res_json)
 
 
@@ -306,14 +306,13 @@ def lock_video_message(message):
             # raw_pic = frame_rg_list[0]
             # _, raw_pic = cv2.imencode('.jpg', raw_pic)
             # res_json['app_data']['video_pic'] = raw_pic.tobytes()
-            res_json['app_data']['video_pic'] = np.asarray(cv2.resize(frame_rg_list[0], (int(c_w * 0.20), int(c_h * 0.20))), dtype=int).tolist()
+            res_json['app_data']['video_pic'] = np.asarray(cv2.resize(frame_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))), dtype=int).tolist()
             photo_rg_list = frame_rg_list
 
         else:
             res_json = {'app_data': {'message': '图片无效'}, 'app_status': '0'}
             photo_rg_list = []
-
-        res_json = json.dumps(res_json)
+        # res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
         emit('lock_video_response', res_json)
 
 
@@ -359,7 +358,7 @@ def add_new_message(message):
             res_json['app_status'] = '0'
             res_json['app_data'] = {'message': '工号不存在'}
 
-        res_json = json.dumps(res_json)
+        #res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
         photo_rg_list = [[], {}]  # 添加完信息后，把以保存的注空
         emit('add_new_response', res_json)
 
