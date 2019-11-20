@@ -165,6 +165,8 @@ def rg_1frame(f_pic):
     else:  # 无人
         frame_rg_list.append({'p1_id': '无人', 'p1_crop': [], 'p1_emb': []})
 
+    get_name_message('111')
+
     return frame_rg_list
 
 
@@ -229,7 +231,7 @@ def connect_message():
 #     return Response(image, mimetype='image/jpeg')
 
 
-@socketio.on('get_name', namespace='/test_conn')  # 消息实时传送
+# @socketio.on('get_name', namespace='/test_conn')  # 消息实时传送
 def get_name_message(message):
     global api_status
     api_status = 'get_name_status'
@@ -270,7 +272,7 @@ def get_name_message(message):
         # res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
         print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
 
-        emit('get_name_response', res_json)
+        # emit('get_name_response', res_json)
 
 
 @socketio.on('get_video', namespace='/test_conn')  # 消息实时传送
@@ -334,7 +336,7 @@ def add_new_message(message):
         res_json = {'app_data': {'message': '录入成功'}, 'app_status': '1'}
 
         if p_id_input in all_officeinfo_dct.keys():
-            if len(photo_rg_list) == 2 and photo_rg_list[0] != []:
+            if len(photo_rg_list) == 2 and photo_rg_list[1]['p1_id'] not in ['无人', '不清晰']:
 
                 # print(photo_rg_list)
                 raw_pic = photo_rg_list[0]
@@ -354,11 +356,9 @@ def add_new_message(message):
                 res_json['app_status'] = '3'
                 res_json['app_data'] = {'message': '尚未拍照'}
             else:
-
                 res_json['app_status'] = '2'
                 res_json['app_data'] = {'message': '照片无效'}
         else:
-
             res_json['app_status'] = '0'
             res_json['app_data'] = {'message': '工号不存在'}
 
