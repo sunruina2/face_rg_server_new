@@ -315,7 +315,7 @@ def lock_video_message(message):
             res_json['app_data']['video_pic'] = raw_pic.tobytes()
         else:
             res_json = {'app_data': {'message': '图片无效'}, 'app_status': '0'}
-            photo_rg_list = []
+            photo_rg_list = [[], {'p1_id': '无人', 'p1_crop': [], 'p1_emb': []}]
         # res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
         print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
 
