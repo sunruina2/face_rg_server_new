@@ -17,7 +17,7 @@ from data_pro.data_utils import is_birthday
 from anti.anti_pre import AntiSpoofing
 from rg_model.model_insight_auroua import InsightPreAuroua
 from threading import Lock
-
+import sys
 # from rg_model.model_facenet import FacenetPre
 # facenet_pre_m = FacenetPre()
 # lastsave_embs0 = np.zeros(128)
@@ -236,6 +236,7 @@ def get_name_message(message):
     while api_status == 'get_name_status':
         print('1111@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
         time.sleep(1)
+        st = time.time()
         global frame_rg_list, all_officeinfo_dct
         res_json = {'app_data': {'message': '识别成功'}, 'app_status': '1'}
         # print(frame_rg_list[1])
@@ -267,6 +268,8 @@ def get_name_message(message):
         else:
             res_json = {'app_data': {'message': '本帧无效'}, 'app_status': '0'}
         # res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
+        print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
+
         emit('get_name_response', res_json)
 
 
@@ -276,7 +279,8 @@ def get_video_message(message):
     api_status = 'get_video_status'
     while api_status == 'get_video_status':
         print('2222@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
-        time.sleep(0.1)
+        time.sleep(0.3)
+        st = time.time()
         global frame_rg_list
         res_json = {'app_data': {'message': '获取实时帧成功'}, 'app_status': '1'}
         # raw_pic = frame_rg_list[0]
@@ -289,12 +293,14 @@ def get_video_message(message):
             # res_json = {"app_data": {"message": "获取实时帧成功", "video_pic": [[[8.0, 9.0, 11.0], [121.0, 134.0, 152.0]]]}, "app_status": "1"}
         else:
             res_json = {'app_data': {'message': '获取实时帧失败'}, 'app_status': '0'}
+        print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
         # res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
         emit('get_video_response', res_json)
 
 
 @socketio.on('lock_video', namespace='/test_conn')  # 消息实时传送
 def lock_video_message(message):
+    st = time.time()
     global api_status
     api_status = 'lock_video_status'
     if api_status == 'lock_video_status':
@@ -313,11 +319,14 @@ def lock_video_message(message):
             res_json = {'app_data': {'message': '图片无效'}, 'app_status': '0'}
             photo_rg_list = []
         # res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
+        print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
+
         emit('lock_video_response', res_json)
 
 
 @socketio.on('add_new', namespace='/test_conn')  # 消息实时传送
 def add_new_message(message):
+    st = time.time()
     global api_status
     para = dict(message)
     api_status = 'add_new_status'
@@ -359,6 +368,8 @@ def add_new_message(message):
             res_json['app_data'] = {'message': '工号不存在'}
 
         #res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
+        print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
+
         photo_rg_list = [[], {}]  # 添加完信息后，把以保存的注空
         emit('add_new_response', res_json)
 
