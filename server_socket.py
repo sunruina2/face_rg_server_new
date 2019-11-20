@@ -171,7 +171,6 @@ def rg_1frame(f_pic):
 
 
 def camera_open():
-    # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:camera_open')
     camera1 = VideoStream(0)
     camera1.stream.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc('Y', 'U', 'Y', 'V'))
     camera1.stream.stream.set(cv2.CAP_PROP_FRAME_WIDTH, c_w)
@@ -219,7 +218,6 @@ def connect_message():
             thread = socketio.start_background_task(background_thread)
 
     res_json = {'app_status': '1', 'app_data': {'message': '链接成功'}}
-    # res_json = json.dumps(res_json)
     emit('connect_response', res_json)
 
 
@@ -241,14 +239,13 @@ def get_name_message(message):
         st = time.time()
         global frame_rg_list, all_officeinfo_dct
         res_json = {'app_data': {'message': '识别成功'}, 'app_status': '1'}
-        # print(frame_rg_list[1])
-        # print(np.asarray(frame_rg_list[0]).shape)
         p1_id = frame_rg_list[1]['p1_id']
         if p1_id not in ['不清晰', '无人']:
             for i in range(len(frame_rg_list)):
                 if i == 0:  # list里第一项是原图，此处不需要，take photo的时候才需要
                     pass
                 elif i in [1, 2, 3, 4]:
+                    p1_id = frame_rg_list[i]['p1_id']
                     if p1_id != '0':
                         c_name = all_officeinfo_dct[p1_id][0]
                         e_name = all_officeinfo_dct[p1_id][1]
@@ -257,21 +254,22 @@ def get_name_message(message):
                         c_name = '未识别的同学'
                         e_name = 'unknown'
                         is_birth = '0'
-                    # _, jpeg = cv2.imencode('.jpg', frame_rg_list[i]['p1_crop'])
-                    # crop_img = jpeg.tobytes()
                     crop_img = np.asarray(frame_rg_list[i]['p1_crop'], dtype=int).tolist()
                     res_json['app_data']['P_' + str(i)] = {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name,
                                                            'is_birth': is_birth, 'crop_img': crop_img}
-
-                    # res_json['app_data']['P_' + str(i)] = {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name,
-                    #                                        'is_birth': is_birth, 'crop_img': '172.16.33.138:5000/cropimg/'+p1_id}
                 else:  # 只显示前人脸概率最大的前4个人
                     break
         else:
             res_json = {'app_data': {'message': '本帧无效'}, 'app_status': '0'}
-        # res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
+        # try:
+        #     print('111111111111111111111111111111111', res_json['app_data']['P_1'])
+        # except:
+        #     pass
+        # try:
+        #     print('222222222222222222222222222222222', res_json['app_data']['P_2'])
+        # except:
+        #     pass
         print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
-
         emit('get_name_response', res_json)
 
 
@@ -285,17 +283,12 @@ def get_video_message(message):
         st = time.time()
         global frame_rg_list
         res_json = {'app_data': {'message': '获取实时帧成功'}, 'app_status': '1'}
-        # raw_pic = frame_rg_list[0]
-        # _, raw_pic = cv2.imencode('.jpg', raw_pic)
-        # res_json['app_data']['video_pic'] = raw_pic.tobytes()
         if len(frame_rg_list[0]) != 0:
             _, raw_pic = cv2.imencode('.jpg', cv2.resize(frame_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))))
             res_json['app_data']['video_pic'] = raw_pic.tobytes()
         else:
             res_json = {'app_data': {'message': '获取实时帧失败'}, 'app_status': '0'}
-        # res_json['app_data']['video_pic'] = []
         print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
-        # res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
         emit('get_video_response', res_json)
 
 
@@ -316,7 +309,6 @@ def lock_video_message(message):
         else:
             res_json = {'app_data': {'message': '图片无效'}, 'app_status': '0'}
             photo_rg_list = [[], {'p1_id': '无人', 'p1_crop': [], 'p1_emb': []}]
-        # res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
         print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
 
         emit('lock_video_response', res_json)
@@ -337,8 +329,6 @@ def add_new_message(message):
 
         if p_id_input in all_officeinfo_dct.keys():
             if len(photo_rg_list) == 2 and photo_rg_list[1]['p1_id'] not in ['无人', '不清晰']:
-
-                # print(photo_rg_list)
                 raw_pic = photo_rg_list[0]
                 p1_crop = photo_rg_list[1]['p1_crop']
                 p1_emb = photo_rg_list[1]['p1_emb']
@@ -360,8 +350,6 @@ def add_new_message(message):
         else:
             res_json['app_status'] = '0'
             res_json['app_data'] = {'message': '工号不存在'}
-
-        #res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
         print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
 
         photo_rg_list = [[], {'p1_id': '无人', 'p1_crop': [], 'p1_emb': []}]  # 添加完信息后，把以保存的注空
@@ -372,3 +360,12 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000)
     # nohup /usr/bin/python3 -u server_socket.py > /root/v2_face_rg/nohup.out 2>&1 &
     # tail -f /root/face_rg_server/nohup.out
+
+    #
+    # # 测试
+    # with thread_lock:
+    #     if thread is None:
+    #         thread = socketio.start_background_task(background_thread)
+    #
+    # res_json = {'app_status': '1', 'app_data': {'message': '链接成功'}}
+    # # res_json = json.dumps(res_json)
