@@ -313,9 +313,10 @@ def lock_video_message(message):
             # raw_pic = frame_rg_list[0]
             # _, raw_pic = cv2.imencode('.jpg', raw_pic)
             # res_json['app_data']['video_pic'] = raw_pic.tobytes()
-            res_json['app_data']['video_pic'] = np.asarray(cv2.resize(frame_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))), dtype=int).tolist()
+            # res_json['app_data']['video_pic'] = np.asarray(cv2.resize(frame_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))), dtype=int).tolist()
+            _, raw_pic = cv2.imencode('.jpg', cv2.resize(photo_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))))
+            res_json['app_data']['video_pic'] = b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + raw_pic.tobytes() + b'\r\n\r\n'
             photo_rg_list = frame_rg_list
-
         else:
             res_json = {'app_data': {'message': '图片无效'}, 'app_status': '0'}
             photo_rg_list = []
