@@ -71,7 +71,7 @@ frame_rg_list = [[], {'p1_id': '无人', 'p1_crop': [], 'p1_emb': []}]
 last_1p_emb = np.zeros(512)
 his_maxacc = {'max_name': '', 'max_sim': 0.0}
 # 最新拍照信息的识别结果
-photo_rg_list = [[], {}]  # 无效：[]，仅1人时有效变量长度为2：[img视频原图， {工号1: 33677，人脸图片: crop_img，向量: emb} ]
+photo_rg_list = [[], {'p1_id': '无人', 'p1_crop': [], 'p1_emb': []}]  # 无效：[]，仅1人时有效变量长度为2：[img视频原图， {工号1: 33677，人脸图片: crop_img，向量: emb} ]
 # 流程监控
 monitor_dct = {'add_n': 0}
 # 模型超参
@@ -345,7 +345,6 @@ def add_new_message(message):
                 time_stamp = time.strftime("%Y%m%d%H%M%S", time.localtime())
                 pic_name = p_id_input + '-' + all_officeinfo_dct[p_id_input][0] + '-' + time_stamp + p_angle_input
                 monitor_dct['add_n'] += 1
-
                 facenet_pre_m.known_embs = np.insert(facenet_pre_m.known_embs, 0, values=np.asarray(p1_emb), axis=0)
                 facenet_pre_m.known_vms = np.insert(facenet_pre_m.known_vms, 0, values=np.linalg.norm(p1_emb), axis=0)
                 facenet_pre_m.known_names = np.insert(facenet_pre_m.known_names, 0, values=np.asarray(pic_name), axis=0)
@@ -365,7 +364,7 @@ def add_new_message(message):
         #res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
         print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
 
-        photo_rg_list = [[], {}]  # 添加完信息后，把以保存的注空
+        photo_rg_list = [[], {'p1_id': '无人', 'p1_crop': [], 'p1_emb': []}]  # 添加完信息后，把以保存的注空
         emit('add_new_response', res_json)
 
 
