@@ -279,7 +279,7 @@ def get_video_message(message):
     api_status = 'get_video_status'
     while api_status == 'get_video_status':
         print('2222@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
-        time.sleep(0.1)
+        time.sleep(0.2)
         st = time.time()
         global frame_rg_list
         res_json = {'app_data': {'message': '获取实时帧成功'}, 'app_status': '1'}
@@ -290,7 +290,7 @@ def get_video_message(message):
             # res_json = {"app_data": {"message": "获取实时帧成功", "video_pic": [[[8.0, 9.0, 11.0], [121.0, 134.0, 152.0]]]}, "app_status": "1"}
             # res_json['app_data']['video_pic'] = np.asarray(cv2.resize(frame_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))), dtype=int).tolist()
             _, raw_pic = cv2.imencode('.jpg', cv2.resize(frame_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))))
-            res_json['app_data']['video_pic'] = b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + raw_pic.tobytes() + b'\r\n\r\n'
+            res_json['app_data']['video_pic'] = b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + str(raw_pic.tobytes()) + b'\r\n\r\n'
         else:
             res_json = {'app_data': {'message': '获取实时帧失败'}, 'app_status': '0'}
         # res_json['app_data']['video_pic'] = []
@@ -315,7 +315,7 @@ def lock_video_message(message):
             # res_json['app_data']['video_pic'] = raw_pic.tobytes()
             # res_json['app_data']['video_pic'] = np.asarray(cv2.resize(frame_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))), dtype=int).tolist()
             _, raw_pic = cv2.imencode('.jpg', cv2.resize(photo_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))))
-            res_json['app_data']['video_pic'] = b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + raw_pic.tobytes() + b'\r\n\r\n'
+            res_json['app_data']['video_pic'] = b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + str(raw_pic.tobytes()) + b'\r\n\r\n'
             photo_rg_list = frame_rg_list
         else:
             res_json = {'app_data': {'message': '图片无效'}, 'app_status': '0'}
