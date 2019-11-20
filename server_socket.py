@@ -287,8 +287,6 @@ def get_video_message(message):
         # _, raw_pic = cv2.imencode('.jpg', raw_pic)
         # res_json['app_data']['video_pic'] = raw_pic.tobytes()
         if len(frame_rg_list[0]) != 0:
-            # res_json = {"app_data": {"message": "获取实时帧成功", "video_pic": [[[8.0, 9.0, 11.0], [121.0, 134.0, 152.0]]]}, "app_status": "1"}
-            # res_json['app_data']['video_pic'] = np.asarray(cv2.resize(frame_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))), dtype=int).tolist()
             _, raw_pic = cv2.imencode('.jpg', cv2.resize(frame_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))))
             res_json['app_data']['video_pic'] = b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + raw_pic.tobytes() + b'\r\n\r\n'
         else:
@@ -310,13 +308,9 @@ def lock_video_message(message):
         res_json = {'app_data': {'message': '图片有效'}, 'app_status': '1'}
 
         if len(frame_rg_list) == 2 and frame_rg_list[1]['p1_id'] not in ['无人', '不清晰']:
-            # raw_pic = frame_rg_list[0]
-            # _, raw_pic = cv2.imencode('.jpg', raw_pic)
-            # res_json['app_data']['video_pic'] = raw_pic.tobytes()
-            # res_json['app_data']['video_pic'] = np.asarray(cv2.resize(frame_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))), dtype=int).tolist()
+            photo_rg_list = frame_rg_list
             _, raw_pic = cv2.imencode('.jpg', cv2.resize(photo_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))))
             res_json['app_data']['video_pic'] = b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + raw_pic.tobytes() + b'\r\n\r\n'
-            photo_rg_list = frame_rg_list
         else:
             res_json = {'app_data': {'message': '图片无效'}, 'app_status': '0'}
             photo_rg_list = []
@@ -357,7 +351,6 @@ def add_new_message(message):
                 cv2.imwrite(para_dct['savepic_path'] + 'photos/' + pic_name + '_crop.jpg', p1_crop)
                 cv2.imwrite(para_dct['savepic_path'] + 'photos/' + pic_name + '_raw.jpg', raw_pic)
             elif len(photo_rg_list) == 2 and photo_rg_list[0] == []:
-
                 res_json['app_status'] = '3'
                 res_json['app_data'] = {'message': '尚未拍照'}
             else:
