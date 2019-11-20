@@ -165,7 +165,7 @@ def rg_1frame(f_pic):
     else:  # 无人
         frame_rg_list.append({'p1_id': '无人', 'p1_crop': [], 'p1_emb': []})
 
-    get_name_message('111')
+    # get_name_message('111')
 
     return frame_rg_list
 
@@ -231,7 +231,7 @@ def connect_message():
 #     return Response(image, mimetype='image/jpeg')
 
 
-# @socketio.on('get_name', namespace='/test_conn')  # 消息实时传送
+@socketio.on('get_name', namespace='/test_conn')  # 消息实时传送
 def get_name_message(message):
     global api_status
     api_status = 'get_name_status'
@@ -272,7 +272,7 @@ def get_name_message(message):
         # res_json = json.dumps(res_json, ensure_ascii=False).replace("'", "")
         print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
 
-        # emit('get_name_response', res_json)
+        emit('get_name_response', res_json)
 
 
 @socketio.on('get_video', namespace='/test_conn')  # 消息实时传送
