@@ -172,6 +172,20 @@ def name2idname(pics_path, save_path):
     #         pickle.dump(all_knowembs_list, f)
     #     print('saving office pkl...', len(all_knowembs_list), save_p)
 
+    def office_crop():
+        office_crop_dict = {}
+        import re
+        pic_name = '孙瑞娜那046115数据中心'
+        crop_pic = cv2.imread(pic_name)
+        pattern = re.compile(r'\d+')
+        res = re.findall(pattern, pic_name)
+
+        for pid in res:
+            if len(pid) == 6:
+                office_crop_dict[pid] = crop_pic
+            else:
+                pass
+
 
 if __name__ == '__main__':
     # # 生成所有员工info信息
