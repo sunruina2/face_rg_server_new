@@ -235,7 +235,7 @@ def get_name_message(message):
     api_status = 'get_name_status'
     while api_status == 'get_name_status':
         print('1111@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
-        time.sleep(1)
+        time.sleep(0.2)
         st = time.time()
         global frame_rg_list, all_officeinfo_dct
         res_json = {'app_data': {'message': '识别成功'}, 'app_status': '1'}
@@ -254,7 +254,10 @@ def get_name_message(message):
                         c_name = '未识别的同学'
                         e_name = 'unknown'
                         is_birth = '0'
-                    crop_img = np.asarray(frame_rg_list[i]['p1_crop'], dtype=int).tolist()
+                    # crop_img = np.asarray(frame_rg_list[i]['p1_crop'], dtype=int).tolist()
+                    _, crop_raw_pic = cv2.imencode('.jpg', frame_rg_list[i]['p1_crop'])
+                    crop_img = crop_raw_pic.tobytes()
+
                     res_json['app_data']['P_' + str(i)] = {'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name,
                                                            'is_birth': is_birth, 'crop_img': crop_img}
                 else:  # 只显示前人脸概率最大的前4个人
@@ -279,7 +282,7 @@ def get_video_message(message):
     api_status = 'get_video_status'
     while api_status == 'get_video_status':
         print('2222@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
-        time.sleep(0.2)
+        # time.sleep(0.2)
         st = time.time()
         global frame_rg_list
         res_json = {'app_data': {'message': '获取实时帧成功'}, 'app_status': '1'}
