@@ -83,7 +83,7 @@ monitor_dct = {'add_n': 0}
 # 模型超参
 para_dct = {'mtcnn_minsize': int(0.2 * min(c_w, c_h)), 'night_start_h': 17, 'clear_day': 100, 'clear_night': 50,
             'savepic_path': '../face_rg_files/save_pics/',
-            'rg_sim': 0.8, 'frame_sim': 0.8, 'det_para': [256, 0.2, 112, 0.0]}  # det_para = [at,at扩充r,rg,rg扩充r]
+            'rg_sim': 0.8, 'frame_sim': 0.8, 'det_para': [256, 0.2, 112, 0.0], 'video_size_r': 0.7}  # det_para = [at,at扩充r,rg,rg扩充r]
 facenet_pre_m.rg_hold = para_dct['rg_sim']
 
 
@@ -290,7 +290,7 @@ def get_video_message(message):
         global frame_rg_list
         res_json = {'app_data': {'message': '获取实时帧成功'}, 'app_status': '1'}
         if len(frame_rg_list[0]) != 0:
-            _, raw_pic = cv2.imencode('.jpg', cv2.resize(frame_rg_list[0], (int(c_w * 0.7), int(c_h * 0.7))))
+            _, raw_pic = cv2.imencode('.jpg', cv2.resize(frame_rg_list[0], (int(c_w * para_dct['video_size_r']), int(c_h * para_dct['video_size_r']))))
             res_json['app_data']['video_pic'] = raw_pic.tobytes()
         else:
             res_json = {'app_data': {'message': '获取实时帧失败'}, 'app_status': '0'}
@@ -310,7 +310,7 @@ def lock_video_message(message):
 
         if len(frame_rg_list) == 2 and frame_rg_list[1]['p1_id'] not in ['无人', '不清晰']:
             photo_rg_list = frame_rg_list
-            _, raw_pic = cv2.imencode('.jpg', cv2.resize(photo_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))))
+            _, raw_pic = cv2.imencode('.jpg', cv2.resize(photo_rg_list[0], (int(c_w * para_dct['video_size_r']), int(c_h * para_dct['video_size_r']))))
             res_json['app_data']['video_pic'] = raw_pic.tobytes()
         else:
             res_json = {'app_data': {'message': '图片无效'}, 'app_status': '0'}
