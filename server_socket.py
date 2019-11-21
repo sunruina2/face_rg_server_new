@@ -77,7 +77,7 @@ monitor_dct = {'add_n': 0}
 # 模型超参
 para_dct = {'mtcnn_minsize': int(0.2 * min(c_w, c_h)), 'night_start_h': 17, 'clear_day': 100, 'clear_night': 50,
             'savepic_path': '../face_rg_files/save_pics/',
-            'rg_sim': 0.75, 'frame_sim': 0.8, 'det_para': [256, 0.1, 112, 0.0]}
+            'rg_sim': 0.8, 'frame_sim': 0.8, 'det_para': [256, 0.1, 112, 0.0]}
 
 
 
@@ -262,7 +262,8 @@ def get_name_message(message):
                 else:  # 只显示前人脸概率最大的前4个人
                     break
         else:
-            res_json = {'app_data': {'message': '本帧无效'}, 'app_status': '0'}
+            res_json = {'app_data': {'message': '本帧无效', 'persons': []}, 'app_status': '0'}
+
         # try:
         #     print('111111111111111111111111111111111', res_json['app_data']['P_1'])
         # except:
