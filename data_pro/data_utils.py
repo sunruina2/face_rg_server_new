@@ -64,6 +64,34 @@ def is_birthday(birthday):
         return '0'
 
 
+def del_side(p5, img_size):
+    # _landmark = np.asarray(
+    #     [[['1左眼x', '1左眼y'],
+    #       ['1右眼x', '1右眼y'],
+    #       ['1鼻子x', '1鼻子y'],
+    #       ['1左嘴x', '1左嘴y'],
+    #       ['1右嘴x', '1右嘴y'], ],
+    #      [['2左眼x', '2左眼y'],
+    #       ['2右眼x', '2右眼y'],
+    #       ['2鼻子x', '2鼻子y'],
+    #       ['2左嘴x', '2左嘴y'],
+    #       ['2右嘴x', '2右嘴y'], ],
+    #      [['3左眼x', '3左眼y'],
+    #       ['3右眼x', '3右眼y'],
+    #       ['3鼻子x', '3鼻子y'],
+    #       ['3左嘴x', '3左嘴y'],
+    #       ['3右嘴x', '3右嘴y'], ]]
+    front_index = []
+    for i in range(len(p5)):
+        if p5[i, 0, 0] < img_size*0.33:  # 左眼x在左1/3范围内
+            if p5[i, 1, 0] > img_size*0.66:  # 右眼x在右1/3范围内
+                if img_size * 0.5 < p5[i, 2, 1] < img_size * 0.85:  # 鼻尖y在crop图片下0.5 -0.85范围内
+                    front_index.append(i)
+
+    return front_index
+
+
+
 def info_dct(info_p, save_p):
     import pandas as pd
     import pickle

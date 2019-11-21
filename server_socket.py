@@ -11,9 +11,8 @@ import numpy as np
 from align import mtcnn_def_trans as fc_server
 import time
 import pickle
-from data_pro.data_utils import brenner
 import multiprocessing
-from data_pro.data_utils import is_birthday
+from data_pro.data_utils import brenner, is_birthday, del_side
 from anti.anti_pre import AntiSpoofing
 from rg_model.model_insight_auroua import InsightPreAuroua
 from threading import Lock
@@ -49,7 +48,7 @@ office_p = str(
     os.path.abspath(__file__).split('face_rg_server_new/')[0]) + 'face_rg_files/' + "common_files/office_info.pkl"
 fr = open(office_p, 'rb')
 all_officeinfo_dct = pickle.load(fr)  # {'046115':['孙瑞娜', 'sunruina', '19930423', []]}
-today_dt = str(time.localtime()[0])+str(time.localtime()[1])+str(time.localtime()[2])
+today_dt = str(time.localtime()[0]) + str(time.localtime()[1]) + str(time.localtime()[2])
 all_officeinfo_dct['046115'][2] = today_dt
 all_officeinfo_dct['053009'][2] = today_dt
 print('dddddddddddddddddddddddddddddddddddddddd', all_officeinfo_dct['046115'])
@@ -84,7 +83,8 @@ monitor_dct = {'add_n': 0}
 # 模型超参
 para_dct = {'mtcnn_minsize': int(0.2 * min(c_w, c_h)), 'night_start_h': 17, 'clear_day': 100, 'clear_night': 50,
             'savepic_path': '../face_rg_files/save_pics/',
-            'rg_sim': 0.8, 'frame_sim': 0.8, 'det_para': [256, 0.1, 112, 0.0]}
+            'rg_sim': 0.8, 'frame_sim': 0.8, 'det_para': [256, 0.2, 112, 0.0]}  # det_para = [at,at扩充r,rg,rg扩充r]
+facenet_pre_m.rg_hold = para_dct['rg_sim']
 
 
 def rg_1frame(f_pic):
@@ -98,6 +98,12 @@ def rg_1frame(f_pic):
                                                                                                            para_dct[
                                                                                                                'det_para'],
                                                                                                            minsize=90)
+    # # 把外极度侧脸和低头仰头过滤掉
+    # ok_index = del_side(point5_rg, para_dct['det_para'][2])
+    # dets, crop_images_at, point5_at, crop_images_rg, point5_rg = dets[ok_index], crop_images_at[ok_index], point5_at[
+    #     ok_index], crop_images_rg[ok_index], point5_rg[ok_index]
+    # if len(dets) == 0:
+    #     align_flag = 0
 
     if align_flag != 0:
         # 清晰度过滤，仅检测人脸概率最大的那个人的清晰度。
@@ -241,7 +247,7 @@ def get_name_message(message):
     api_status = 'get_name_status'
     while api_status == 'get_name_status':
         print('1111@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
-        time.sleep(0.2)
+        time.sleep(0.5)
         st = time.time()
         global frame_rg_list, all_officeinfo_dct
         res_json = {'app_data': {'message': '识别成功', 'persons': []}, 'app_status': '1'}
@@ -269,15 +275,6 @@ def get_name_message(message):
                     break
         else:
             res_json = {'app_data': {'message': '本帧无效', 'persons': []}, 'app_status': '0'}
-
-        # try:
-        #     print('111111111111111111111111111111111', res_json['app_data']['P_1'])
-        # except:
-        #     pass
-        # try:
-        #     print('222222222222222222222222222222222', res_json['app_data']['P_2'])
-        # except:
-        #     pass
         print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
         emit('get_name_response', res_json)
 
@@ -293,7 +290,7 @@ def get_video_message(message):
         global frame_rg_list
         res_json = {'app_data': {'message': '获取实时帧成功'}, 'app_status': '1'}
         if len(frame_rg_list[0]) != 0:
-            _, raw_pic = cv2.imencode('.jpg', cv2.resize(frame_rg_list[0], (int(c_w * 0.50), int(c_h * 0.50))))
+            _, raw_pic = cv2.imencode('.jpg', cv2.resize(frame_rg_list[0], (int(c_w * 0.7), int(c_h * 0.7))))
             res_json['app_data']['video_pic'] = raw_pic.tobytes()
         else:
             res_json = {'app_data': {'message': '获取实时帧失败'}, 'app_status': '0'}

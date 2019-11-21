@@ -6,7 +6,7 @@ import numpy as np
 from align import mtcnn_def_trans as fc_server
 import time
 import pickle
-from data_pro.data_utils import brenner
+from data_pro.data_utils import brenner,del_side
 from anti.anti_pre import AntiSpoofing
 anti = AntiSpoofing()
 
@@ -72,6 +72,13 @@ def rg_1frame(f_pic):
     dets, crop_images_at, point5_at, crop_images_rg, point5_rg, align_flag = fc_server.load_and_align_data(f_pic,
                                                                                                            det_para,
                                                                                                            minsize=90)  # 获取人脸, 由于frame色彩空间rgb不对应问题，需统一转为灰色图片
+
+    # print(point5_rg)
+    # ok_index = del_side(point5_rg, det_para[2])
+    # dets, crop_images_at, point5_at, crop_images_rg, point5_rg = dets[ok_index], crop_images_at[ok_index], point5_at[
+    #     ok_index], crop_images_rg[ok_index], point5_rg[ok_index]
+    # if len(dets) == 0:
+    #     align_flag = 0
 
     # now_exetime_rg = time.time()
     # print('TIME rg: aligin', np.round((now_exetime_rg - last_exetime_rg), 4))

@@ -80,6 +80,7 @@ class InsightPreAuroua():
 
         self.train_mode = 0
         self.au_cfg = cfg_au
+        self.rg_hold = 0.8
 
         print('building net')
 
@@ -253,7 +254,7 @@ class InsightPreAuroua():
         # print(cos_sim)
         is_known = 0
         sim_p = max(cos_sim)
-        if sim_p >= 0.75:  # 越大越严格
+        if sim_p >= self.rg_hold:  # 越大越严格
             loc_similar_most = np.where(cos_sim == sim_p)
             # print(loc_similar_most)
             is_known = 1
