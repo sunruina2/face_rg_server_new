@@ -10,9 +10,9 @@
             namespace = '/test_conn';
             var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port +namespace);
 
-            //进入主页后调用一次，后台每隔1秒发送一次识别结果，res_json = {'app_data': {'message': '识别成功', 'P_1': {'p1_id': '046115', 'c_name': '孙瑞娜', 'e_name': 'sunruina', 'is_birth': '0', 'crop_img': [[[8.0, 9.0, 11.0], [121.0, 134.0, 152.0]]]}}, 'app_status': '1'}
-            socket.on('connect', function() {socket.emit('get_name', {'api_status': 'get_name_status'});});
-            socket.on('get_name_response', function(msg) {console.log(msg);});
+<!--            //进入主页后调用一次，后台每隔1秒发送一次识别结果，res_json = {'app_data': {'message': '识别成功', 'P_1': {'p1_id': '046115', 'c_name': '孙瑞娜', 'e_name': 'sunruina', 'is_birth': '0', 'crop_img': [[[8.0, 9.0, 11.0], [121.0, 134.0, 152.0]]]}}, 'app_status': '1'}-->
+<!--            socket.on('connect', function() {socket.emit('get_name', {'api_status': 'get_name_status'});});-->
+<!--            socket.on('get_name_response', function(msg) {console.log(msg);});-->
 
 <!--            //进入录入页后调用一次，后台每隔0.1秒发送一次画面，res_json = {"app_data": {"message": "获取实时帧成功", "video_pic": [[[8.0, 9.0, 11.0], [121.0, 134.0, 152.0]]]}, "app_status": "1"}-->
 <!--            socket.on('connect', function() {socket.emit('get_video', {'api_status': 'get_video_status'});});-->
