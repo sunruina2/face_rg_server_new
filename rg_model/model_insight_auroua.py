@@ -212,12 +212,12 @@ class InsightPreAuroua():
         无人脸的图片pre_bug.jpg，余弦距离参考值如下，无人脸有内容图片cos均值在0.11156807，sim均值在 0.55578405
         cos describe [0.47486433] [-0.09186573] 0.11156807 0.004270094
         sim describe [0.7374322] [0.45406714] 0.55578405 0.0010675235
-        pre_1pic ['未知的同学'] [0.0] [0]
+        pre_1pic ['未识别'] [0.0] [0]
 
         近乎全白的图片pre_white.jpg，余弦距离参考值如下，白图cos均值在0.015752314，sim均值在 0.50787616
         cos describe [0.44681713] [-0.17200288] 0.015752314 0.00459828
         sim describe [0.7234086] [0.41399854] 0.50787616 0.0011495701
-        pre_1pic ['未知的同学'] [0.0] [0]
+        pre_1pic ['未识别'] [0.0] [0]
         """
 
         return sim
@@ -257,12 +257,12 @@ class InsightPreAuroua():
             loc_similar_most = np.where(cos_sim == sim_p)
             # print(loc_similar_most)
             is_known = 1
-            print('识别到最相似的人是：', sim_p, self.known_names[loc_similar_most][0])
+            print('识别到>>>最相似的人是：', sim_p, self.known_names[loc_similar_most][0])
             return self.known_names[loc_similar_most][0], is_known, sim_p
         else:
             loc_similar_most = np.where(cos_sim == sim_p)
-            print('未识别到但最相似的人是：', sim_p, self.known_names[loc_similar_most][0])
-            return '0-未知的同学-0', is_known, sim_p
+            print('未识别>>>最相似的人是：', sim_p, self.known_names[loc_similar_most][0])
+            return '0-未识别-0', is_known, sim_p
 
     def gen_knowns_db(self, pic_path, pkl_path):
 

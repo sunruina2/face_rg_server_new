@@ -18,6 +18,7 @@ from anti.anti_pre import AntiSpoofing
 from rg_model.model_insight_auroua import InsightPreAuroua
 from threading import Lock
 import sys
+
 # from rg_model.model_facenet import FacenetPre
 # facenet_pre_m = FacenetPre()
 # lastsave_embs0 = np.zeros(128)
@@ -57,7 +58,7 @@ api_status = '静默'
 async_mode = None
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, async_mode=async_mode, cors_allowed_origins='*',binary=True)
+socketio = SocketIO(app, async_mode=async_mode, cors_allowed_origins='*', binary=True)
 thread = None
 thread_lock = Lock()
 # 多进程类
@@ -71,14 +72,14 @@ frame_rg_list = [[], {'p1_id': '无人', 'p1_crop': [], 'p1_emb': []}]
 last_1p_emb = np.zeros(512)
 his_maxacc = {'max_name': '', 'max_sim': 0.0}
 # 最新拍照信息的识别结果
-photo_rg_list = [[], {'p1_id': '无人', 'p1_crop': [], 'p1_emb': []}]  # 无效：[]，仅1人时有效变量长度为2：[img视频原图， {工号1: 33677，人脸图片: crop_img，向量: emb} ]
+photo_rg_list = [[], {'p1_id': '无人', 'p1_crop': [],
+                      'p1_emb': []}]  # 无效：[]，仅1人时有效变量长度为2：[img视频原图， {工号1: 33677，人脸图片: crop_img，向量: emb} ]
 # 流程监控
 monitor_dct = {'add_n': 0}
 # 模型超参
 para_dct = {'mtcnn_minsize': int(0.2 * min(c_w, c_h)), 'night_start_h': 17, 'clear_day': 100, 'clear_night': 50,
             'savepic_path': '../face_rg_files/save_pics/',
             'rg_sim': 0.8, 'frame_sim': 0.8, 'det_para': [256, 0.1, 112, 0.0]}
-
 
 
 def rg_1frame(f_pic):
@@ -251,14 +252,14 @@ def get_name_message(message):
                         e_name = all_officeinfo_dct[p1_id][1]
                         is_birth = is_birthday(all_officeinfo_dct[p1_id][2])
                     else:
-                        c_name = '未识别的同学'
+                        c_name = '未识别'
                         e_name = 'unknown'
                         is_birth = '0'
                     # crop_img = np.asarray(frame_rg_list[i]['p1_crop'], dtype=int).tolist()
                     _, crop_raw_pic = cv2.imencode('.jpg', frame_rg_list[i]['p1_crop'])
                     crop_img = crop_raw_pic.tobytes()
                     res_json['app_data']['persons'].append({'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name,
-                                                           'is_birth': is_birth, 'crop_img': crop_img})
+                                                            'is_birth': is_birth, 'crop_img': crop_img})
                 else:  # 只显示前人脸概率最大的前4个人
                     break
         else:
@@ -272,7 +273,7 @@ def get_name_message(message):
         #     print('222222222222222222222222222222222', res_json['app_data']['P_2'])
         # except:
         #     pass
-        print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
+        print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
         emit('get_name_response', res_json)
 
 
@@ -291,7 +292,7 @@ def get_video_message(message):
             res_json['app_data']['video_pic'] = raw_pic.tobytes()
         else:
             res_json = {'app_data': {'message': '获取实时帧失败'}, 'app_status': '0'}
-        print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
+        print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
         emit('get_video_response', res_json)
 
 
@@ -312,7 +313,7 @@ def lock_video_message(message):
         else:
             res_json = {'app_data': {'message': '图片无效'}, 'app_status': '0'}
             photo_rg_list = [[], {'p1_id': '无人', 'p1_crop': [], 'p1_emb': []}]
-        print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
+        print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
 
         emit('lock_video_response', res_json)
 
@@ -353,7 +354,7 @@ def add_new_message(message):
         else:
             res_json['app_status'] = '0'
             res_json['app_data'] = {'message': '工号不存在'}
-        print(sys.getsizeof(res_json), np.round(time.time()-st, 4))
+        print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
 
         photo_rg_list = [[], {'p1_id': '无人', 'p1_crop': [], 'p1_emb': []}]  # 添加完信息后，把以保存的注空
         emit('add_new_response', res_json)
