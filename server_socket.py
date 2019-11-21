@@ -235,7 +235,7 @@ def get_name_message(message):
     api_status = 'get_name_status'
     while api_status == 'get_name_status':
         print('1111@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
-        time.sleep(0.2)
+        # time.sleep(0.2)
         st = time.time()
         global frame_rg_list, all_officeinfo_dct
         res_json = {'app_data': {'message': '识别成功'}, 'app_status': '1'}
