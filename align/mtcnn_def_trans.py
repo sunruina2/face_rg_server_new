@@ -142,7 +142,7 @@ def hisEqulColor1(img):
     return img
 
 
-def load_and_align_data(image, det_4para, minsize=100, threshold=[0.85, 0.7, 0.7], factor=0.709,
+def load_and_align_data(image, det_4para, minsize=100, threshold=[0.65, 0.7, 0.7], factor=0.709,
                         gama_flag=0):  # 返回彩图
     # face detection parameters
     # 以下两个阈值调整后，歪脸和遮挡会被过滤掉

@@ -73,7 +73,7 @@ frame_rg_list = [[], {'p1_id': '无人', 'p1_face': [], 'p1_crop': [], 'p1_emb':
 # 无人：[img视频原图]，有人：[img视频原图， {工号1: 33677，人脸图片: crop_img，向量: emb} , ... , {工号n: 46119，人脸图片: crop_img，向量: emb} ]
 # 单人模式上一帧emb临时存储，当前人的frame流历史最大准确识别
 last_1p_emb = np.zeros(512)
-his_maxacc = {'max_name': '', 'max_sim': 0.0}
+his_maxacc = {'max_name': '0-历史最准名默认值-0', 'max_sim': 0.0}
 # 最新拍照信息的识别结果
 photo_rg_list = [[], {'p1_id': '无人', 'p1_face': [], 'p1_crop': [], 'p1_emb': []}]
 # 无效：[]，仅1人时有效变量长度为2：[img视频原图， {工号1: 33677，人脸图片: crop_img，向量: emb} ]
@@ -136,17 +136,17 @@ def rg_1frame(f_pic):
             # 逻辑判断，先判断是否同一个人，再判断本帧清晰与否，不管清洗不清晰都要有返回结果，避免闪屏
             if is_same_t == '1':  # 同人
                 if is_qx1 >= qx_hold and is_qx0 >= qx_hold:  # 同人，清晰，可用于更新结果变量his_maxacc，更新后取历史最高概率结果
-                    if sims[0] > his_maxacc['max_sim']:  # 本帧概率大于历史最高时，更新历史最高字典结果为本帧结果
-                        his_maxacc = {'max_name': names[0], 'max_sim': sims[0]}
-                    else:  # 否则不更新历史最高结果
-                        pass
+                        if sims[0] > his_maxacc['max_sim']:  # 本帧概率大于历史最高时，更新历史最高字典结果为本帧结果
+                            his_maxacc = {'max_name': names[0], 'max_sim': sims[0]}
+                        else:  # 否则不更新历史最高结果
+                            pass
                 else:  # 同人，不清晰，不更新历史最高结果表
                     pass
                 names[0] = his_maxacc['max_name']  # 将此人历史最高结果付给names作为返回
                 # names[0] = his_maxacc['max_name'] + '_rg'+names[0]
             else:
                 # 如果换人了，则将单人历史最准记录置零，再开始新的人的从0更新
-                his_maxacc = {'max_name': '', 'max_sim': 0.0}
+                his_maxacc = {'max_name': '0-历史最准名默认值-0', 'max_sim': 0.0}
 
             # 单人模式实时流随机保存
             if is_qx1 >= qx_hold and is_qx0 >= qx_hold:
@@ -307,13 +307,13 @@ def get_name_message(message):
     global api_status
     api_status = 'get_name_status'
     while api_status == 'get_name_status':
-        print('---------------------------------------------------1', api_status, ' monitor_dct:', monitor_dct)
+        print('---------------------------------------------------------1', api_status, ' monitor_dct:', monitor_dct)
         time.sleep(0.05)
         st = time.time()
         global frame_rg_list, all_officeinfo_dct
         res_json = {'app_data': {'message': '识别成功', 'persons': []}, 'app_status': '1'}
         p1_id = frame_rg_list[1]['p1_id']
-        if p1_id not in ['不清晰', '无人', '']:
+        if p1_id not in ['不清晰', '无人', '历史最准名默认值']:
             for i in range(len(frame_rg_list)):
                 if i == 0:  # list里第一项是原图，此处不需要，take photo的时候才需要
                     pass
@@ -345,7 +345,7 @@ def get_video_message(message):
     api_status = 'get_video_status'
 
     while api_status == 'get_video_status':
-        print('---------------------------------------------------2', api_status, ' monitor_dct:', monitor_dct)
+        print('---------------------------------------------------------2', api_status, ' monitor_dct:', monitor_dct)
         st = time.time()
         time.sleep(0.01)
         global camera
@@ -371,7 +371,7 @@ def lock_video_message(message):
     global api_status
     api_status = 'lock_video_status'
     if api_status == 'lock_video_status':
-        print('---------------------------------------------------3', api_status)
+        print('---------------------------------------------------------3', api_status)
         global frame_rg_list, photo_rg_list
         res_json = {'app_data': {'message': '图片有效'}, 'app_status': '1'}
 
@@ -395,7 +395,7 @@ def add_new_message(message):
     para = dict(message)
     api_status = 'add_new_status'
     if api_status == 'add_new_status':
-        print('---------------------------------------------------4', api_status)
+        print('---------------------------------------------------------4', api_status)
         global frame_rg_list, photo_rg_list, monitor_dct
         p_id_input = para['P1']
         p_angle_input = para['P2']
