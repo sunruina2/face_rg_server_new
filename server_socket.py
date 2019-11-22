@@ -68,20 +68,20 @@ multi_p = None
 # 摄像头类
 camera, c_w, c_h = None, 1280, 720
 # 实时识别结果存储，长度为帧中人数+1
-frame_rg_list = [[], {'p1_id': '无人', 'p1_crop': [], 'p1_emb': []}]
+frame_rg_list = [[], {'p1_id': '无人', 'p1_face': [], 'p1_crop': [], 'p1_emb': []}]
 # 无人：[img视频原图]，有人：[img视频原图， {工号1: 33677，人脸图片: crop_img，向量: emb} , ... , {工号n: 46119，人脸图片: crop_img，向量: emb} ]
 # 单人模式上一帧emb临时存储，当前人的frame流历史最大准确识别
 last_1p_emb = np.zeros(512)
 his_maxacc = {'max_name': '', 'max_sim': 0.0}
 # 最新拍照信息的识别结果
-photo_rg_list = [[], {'p1_id': '无人', 'p1_crop': [],
-                      'p1_emb': []}]  # 无效：[]，仅1人时有效变量长度为2：[img视频原图， {工号1: 33677，人脸图片: crop_img，向量: emb} ]
+photo_rg_list = [[], {'p1_id': '无人', 'p1_face': [], 'p1_crop': [], 'p1_emb': []}]
+# 无效：[]，仅1人时有效变量长度为2：[img视频原图， {工号1: 33677，人脸图片: crop_img，向量: emb} ]
 # 流程监控
 monitor_dct = {'add_n': 0}
 # 模型超参
 para_dct = {'mtcnn_minsize': int(0.2 * min(c_w, c_h)), 'night_start_h': 17, 'clear_day': 100, 'clear_night': 50,
             'savepic_path': '../face_rg_files/save_pics/',
-            'rg_sim': 0.8, 'frame_sim': 0.80, 'det_para': [256, 0.2, 112, 0.0],
+            'rg_sim': 0.8, 'frame_sim': 0.77, 'det_para': [115, 0.6, 112, 0.0],
             'video_size_r': 0.7}  # det_para = [at,at扩充r,rg,rg扩充r]
 facenet_pre_m.rg_hold = para_dct['rg_sim']
 
@@ -178,14 +178,42 @@ def rg_1frame(f_pic):
             names = names_qx
 
             # 按照距离左上角的远近返回名字顺序，越近越靠前显示。
-            dets_local = np.asarray(
-                [[i, (dets[i][0] * dets[i][0] + dets[i][1] * dets[i][1]) ** 0.5] for i in range(len(dets))],
-                dtype=int)  # 计算矩形框离左上角的距离
+            # dets_local = np.asarray([[i, (dets[i][0] * dets[i][0] + dets[i][1] * dets[i][1]) ** 0.5] for i in range(len(dets))], dtype=int)  # 计算矩形框离左上角的距离
+            dets_local = np.asarray([[i, dets[i][0]] for i in range(len(dets))], dtype=int)  # 计算矩形框左上角x离video左上角的距离
             dets_local_rank = dets_local[dets_local[:, 1].argsort()]  # 按照距离排序输出名字顺序
-            names_new = ['' for i in names]
+            iter_n = range(len(dets))
+
+            names_new = ['' for i in iter_n]
+            faceis_konwns_new = ['' for i in iter_n]
+            faceembs_new = ['' for i in iter_n]
+            sims_new = ['' for i in iter_n]
+            dets_new = ['' for i in iter_n]
+            crop_images_at_new = ['' for i in iter_n]
+            point5_at_new = ['' for i in iter_n]
+            crop_images_rg_new = ['' for i in iter_n]
+            point5_rg_new = ['' for i in iter_n]
+            align_flag_new = ['' for i in iter_n]
             for i in range(len(names)):
                 names_new[i] = names[dets_local_rank[i, 0]]
+                faceis_konwns_new[i] = faceis_konwns[dets_local_rank[i, 0]]
+                faceembs_new[i] = faceembs[dets_local_rank[i, 0]]
+                sims_new[i] = sims[dets_local_rank[i, 0]]
+                dets_new[i] = dets[dets_local_rank[i, 0]]
+                crop_images_at_new[i] = crop_images_at[dets_local_rank[i, 0]]
+                point5_at_new[i] = point5_at[dets_local_rank[i, 0]]
+                crop_images_rg_new[i] = crop_images_rg[dets_local_rank[i, 0]]
+                point5_rg_new[i] = point5_rg[dets_local_rank[i, 0]]
+                align_flag_new[i] = align_flag[dets_local_rank[i, 0]]
             names = names_new
+            faceis_konwns = faceis_konwns_new
+            faceembs = faceembs_new
+            sims = sims_new
+            dets = dets_new
+            crop_images_at = crop_images_at_new
+            point5_at = point5_at_new
+            crop_images_rg = crop_images_rg_new
+            point5_rg = point5_rg_new
+            align_flag = align_flag_new
 
             ids_cut = [i.split('-')[0] for i in names]
     else:  # 没有人
@@ -196,10 +224,10 @@ def rg_1frame(f_pic):
     frame_rg_list = [f_pic]
     if len(dets) != 0:
         for p_i in range(len(dets)):
-            p1_rg_res = {'p1_id': ids_cut[p_i], 'p1_crop': crop_images_rg[p_i], 'p1_emb': faceembs[p_i]}
+            p1_rg_res = {'p1_id': ids_cut[p_i], 'p1_face': crop_images_at[p_i], 'p1_crop': crop_images_rg[p_i], 'p1_emb': faceembs[p_i]}
             frame_rg_list.append(p1_rg_res)
     else:  # 无人
-        frame_rg_list.append({'p1_id': '无人', 'p1_crop': [], 'p1_emb': []})
+        frame_rg_list.append({'p1_id': '无人', 'p1_face': [], 'p1_crop': [], 'p1_emb': []})
 
     # get_name_message('111')
 
@@ -290,8 +318,7 @@ def get_name_message(message):
                         c_name = '未识别'
                         e_name = 'unknown'
                         is_birth = '0'
-                    # crop_img = np.asarray(frame_rg_list[i]['p1_crop'], dtype=int).tolist()
-                    _, crop_raw_pic = cv2.imencode('.jpg', frame_rg_list[i]['p1_crop'])
+                    _, crop_raw_pic = cv2.imencode('.jpg', frame_rg_list[i]['p1_face'])
                     crop_img = crop_raw_pic.tobytes()
                     res_json['app_data']['persons'].append({'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name,
                                                             'is_birth': is_birth, 'crop_img': crop_img})
@@ -346,7 +373,7 @@ def lock_video_message(message):
             res_json['app_data']['video_pic'] = raw_pic.tobytes()
         else:
             res_json = {'app_data': {'message': '图片无效'}, 'app_status': '0'}
-            photo_rg_list = [[], {'p1_id': '无人', 'p1_crop': [], 'p1_emb': []}]
+            photo_rg_list = [[], {'p1_id': '无人', 'p1_face': [], 'p1_crop': [], 'p1_emb': []}]
         print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
 
         emit('lock_video_response', res_json)
@@ -390,7 +417,7 @@ def add_new_message(message):
             res_json['app_data'] = {'message': '工号不存在'}
         print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
 
-        photo_rg_list = [[], {'p1_id': '无人', 'p1_crop': [], 'p1_emb': []}]  # 添加完信息后，把以保存的注空
+        photo_rg_list = [[], {'p1_id': '无人', 'p1_face': [], 'p1_crop': [], 'p1_emb': []}]  # 添加完信息后，把以保存的注空
         emit('add_new_response', res_json)
 
 
