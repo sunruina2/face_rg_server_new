@@ -149,17 +149,18 @@ def rg_1frame(f_pic):
                 his_maxacc = {'max_name': '', 'max_sim': 0.0}
 
             # 单人模式实时流随机保存
-            sead = hash(str(time.time())[-6:])
-            if sead % 2 == 1:  # hash采样
-                fpic_path = para_dct['savepic_path'] + 'stream/' + now_time + '_' + is_same_t + '-' + str(
-                    is_same_p[0])[2:4] + '_' + str(int(is_qx1)) + '-' + str(int(is_qx0)) + '_' + str(
-                    sims[0])[2:4]
-                cv2.imwrite(fpic_path + '_crop_@' + names[0] + '.jpg', crop_images_rg[0])
-                # cv2.imwrite(fpic_path + '_crop_@' + names[0] + '.jpg', crop_images_at[0])
-                cv2.imwrite(fpic_path + '_raw_@' + names[0] + '.jpg', f_pic)
-            last_1p_emb = faceembs[0]  # 更新last save emb，以便判定本帧是否和上一帧同一个人
+            if is_qx1 >= qx_hold and is_qx0 >= qx_hold:
+                sead = hash(str(time.time())[-6:])
+                if sead % 2 == 1:  # hash采样
+                    fpic_path = para_dct['savepic_path'] + 'stream/' + now_time + '_' + is_same_t + '-' + str(
+                        is_same_p[0])[2:4] + '_' + str(int(is_qx1)) + '-' + str(int(is_qx0)) + '_' + str(
+                        sims[0])[2:4]
+                    cv2.imwrite(fpic_path + '_crop_@' + names[0] + '.jpg', crop_images_rg[0])
+                    # cv2.imwrite(fpic_path + '_crop_@' + names[0] + '.jpg', crop_images_at[0])
+                    cv2.imwrite(fpic_path + '_raw_@' + names[0] + '.jpg', f_pic)
 
             '''更新识别返回值员工id'''
+            last_1p_emb = faceembs[0]  # 更新last save emb，以便判定本帧是否和上一帧同一个人
             ids_cut = [i.split('-')[0] for i in names]
         else:  # 多人，因为检测是识别两个过程，无法对应是否同人，所有目前没有比较好的结果修正，直接返回模型识别结果
             # 多人人脸识别，大于4的去掉不识别了【】
