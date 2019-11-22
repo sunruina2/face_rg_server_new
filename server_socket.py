@@ -49,9 +49,7 @@ office_p = str(
 fr = open(office_p, 'rb')
 all_officeinfo_dct = pickle.load(fr)  # {'046115':['孙瑞娜', 'sunruina', '19930423', []]}
 today_dt = str(time.localtime()[0]) + str(time.localtime()[1]) + str(time.localtime()[2])
-all_officeinfo_dct['046115'][2] = today_dt
 all_officeinfo_dct['053009'][2] = today_dt
-print('dddddddddddddddddddddddddddddddddddddddd', all_officeinfo_dct['046115'])
 print('dddddddddddddddddddddddddddddddddddddddd', all_officeinfo_dct['053009'])
 print('all_office_num', len(all_officeinfo_dct))
 
