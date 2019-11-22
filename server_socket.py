@@ -336,7 +336,7 @@ def get_video_message(message):
     while api_status == 'get_video_status':
         print('2222@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
         st = time.time()
-        time.sleep(0.05)
+        time.sleep(0.01)
         global camera
         if not camera:
             camera = camera_open()
