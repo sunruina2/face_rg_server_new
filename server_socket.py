@@ -81,7 +81,7 @@ monitor_dct = {'add_n': 0}
 # 模型超参
 para_dct = {'mtcnn_minsize': int(0.2 * min(c_w, c_h)), 'night_start_h': 17, 'clear_day': 100, 'clear_night': 50,
             'savepic_path': '../face_rg_files/save_pics/',
-            'rg_sim': 0.8, 'frame_sim': 0.77, 'det_para': [115, 0.6, 112, 0.0],
+            'rg_sim': 0.8, 'frame_sim': 0.77, 'det_para': [112, 0.35, 112, 0.0],
             'video_size_r': 0.7}  # det_para = [at,at扩充r,rg,rg扩充r]
 facenet_pre_m.rg_hold = para_dct['rg_sim']
 
@@ -155,6 +155,7 @@ def rg_1frame(f_pic):
                     is_same_p[0])[2:4] + '_' + str(int(is_qx1)) + '-' + str(int(is_qx0)) + '_' + str(
                     sims[0])[2:4]
                 cv2.imwrite(fpic_path + '_crop_@' + names[0] + '.jpg', crop_images_rg[0])
+                # cv2.imwrite(fpic_path + '_crop_@' + names[0] + '.jpg', crop_images_at[0])
                 cv2.imwrite(fpic_path + '_raw_@' + names[0] + '.jpg', f_pic)
             last_1p_emb = faceembs[0]  # 更新last save emb，以便判定本帧是否和上一帧同一个人
 
@@ -192,7 +193,6 @@ def rg_1frame(f_pic):
             point5_at_new = ['' for i in iter_n]
             crop_images_rg_new = ['' for i in iter_n]
             point5_rg_new = ['' for i in iter_n]
-            align_flag_new = ['' for i in iter_n]
             for i in range(len(names)):
                 names_new[i] = names[dets_local_rank[i, 0]]
                 faceis_konwns_new[i] = faceis_konwns[dets_local_rank[i, 0]]
@@ -203,7 +203,6 @@ def rg_1frame(f_pic):
                 point5_at_new[i] = point5_at[dets_local_rank[i, 0]]
                 crop_images_rg_new[i] = crop_images_rg[dets_local_rank[i, 0]]
                 point5_rg_new[i] = point5_rg[dets_local_rank[i, 0]]
-                align_flag_new[i] = align_flag[dets_local_rank[i, 0]]
             names = names_new
             faceis_konwns = faceis_konwns_new
             faceembs = faceembs_new
@@ -213,7 +212,6 @@ def rg_1frame(f_pic):
             point5_at = point5_at_new
             crop_images_rg = crop_images_rg_new
             point5_rg = point5_rg_new
-            align_flag = align_flag_new
 
             ids_cut = [i.split('-')[0] for i in names]
     else:  # 没有人
