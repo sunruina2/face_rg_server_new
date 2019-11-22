@@ -147,12 +147,12 @@ class InsightPreAuroua():
         self.files_fresh = sorted(glob.iglob(global_pkl_path), key=os.path.getctime, reverse=True)[0]
         fr = open(self.files_fresh, 'rb')
         piccode_path_dct = pickle.load(fr)  # key 043374-人力资源部-张晓宛
-        self.known_names = np.asarray(list(piccode_path_dct.keys()))
+        self.known_names = np.asarray(list(piccode_path_dct.keys())).reshape(len(piccode_path_dct.keys()), 1)
         self.known_embs = np.asarray(list(piccode_path_dct.values()))
         # 计算已知人脸向量的摩长,[|B|= reshape( (N,), (N,1) ) ]，以便后边的计算实时流向量，计算最相似用户时用
         self.known_vms = np.reshape(np.linalg.norm(self.known_embs, axis=1), (len(self.known_embs), 1))
 
-        peoples = [i.split('-')[0] for i in self.known_names]
+        peoples = [i[0].split('-')[1] for i in self.known_names]
         count_p = Counter(peoples)
         print(count_p)
         print('已知人脸:  IDs-N:', len(list(set(peoples))), '  PICs-N:', len(self.known_names), '  PICs/ID-N:', int((len(self.known_names)) / len(list(set(peoples)))))
@@ -255,17 +255,17 @@ class InsightPreAuroua():
             loc_similar_most = np.where(cos_sim == sim_p)
             # print(loc_similar_most)
             is_known = 1
-            print('识别到>>>最相似的人是：', sim_p, self.known_names[loc_similar_most][0])
-            return self.known_names[loc_similar_most][0], is_known, sim_p
+            print('识别到>>>最相似的人是：', sim_p, self.known_names[loc_similar_most][0][0])
+            return self.known_names[loc_similar_most][0][0], is_known, sim_p
         else:
             loc_similar_most = np.where(cos_sim == sim_p)
-            print('未识别>>>最相似的人是：', sim_p, self.known_names[loc_similar_most][0])
+            print('未识别>>>最相似的人是：', sim_p, self.known_names[loc_similar_most][0][0])
             return '0-未识别-0', is_known, sim_p
 
     def gen_knowns_db(self, pic_path, pkl_path):
 
         # 读marking人脸图片list
-        imgs_pic, fns = load_image(pic_path, self.au_cfg.image_size, name_is_folder=0)
+        imgs_pic, fns = load_image(pic_path, self.au_cfg.image_size)
 
         # 获取embs
         print('forward running...')

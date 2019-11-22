@@ -10,7 +10,7 @@ def data_iter(datasets, batch_size):
         yield datasets[i:min(i + batch_size, data_num), ...]
 
 
-def load_image(pics_path, image_size, name_is_folder=1):
+def load_image(pics_path, image_size, name_is_folder=0):
     print('pic reading %s' % pics_path)
     if os.path.isdir(pics_path):
         paths = list(os.listdir(pics_path))
@@ -35,8 +35,9 @@ def load_image(pics_path, image_size, name_is_folder=1):
             if name_is_folder == 1:
                 fns.append(peo + '-' + str(peo_i))  # 文件夹名字+第几张照片
             else:
-                fns.append(pic.split('.')[0])  # 照片原名字
-    print('load pic done!', Counter(fns))
+                fns.append(pic.split('.')[0])  # 取照片原名字
+
+    print('load pic done!', Counter([i.split('-')[1] for i in fns]))
     return np.array(images), fns
 
 
@@ -216,16 +217,15 @@ def name2idname(pics_path, save_path):
 
 
 if __name__ == '__main__':
-    # # 生成所有员工info信息
+    '''生成所有员工info信息'''
     # exe_path = os.path.abspath(__file__)
     # f_path = str(exe_path.split('face_rg_server_new/')[0]) + 'face_rg_files/' + "common_files/office_info.csv"
     # s_path = str(exe_path.split('face_rg_server_new/')[0]) + 'face_rg_files/' + "common_files/office_info.pkl"
     # info_dct(f_path, s_path)
 
-    # 已知员工照片目录nameN改为员工号@name-N
-    exe_path = os.path.abspath(__file__)
-    # /Users/finup/Desktop/rg/face_rg_files/common_files/dc_marking_trans
-    pic_path = str(exe_path.split('face_rg_server_new/')[0]) + 'face_rg_files/' + "common_files/dc_marking_trans"
-    s_path = str(exe_path.split('face_rg_server_new/')[0]) + 'face_rg_files/' + "common_files/dc_marking_trans_newnanme"
-    print(pic_path, s_path)
-    name2idname(pic_path, s_path)
+    '''已知员工照片目录nameN改为员工号-name-N'''
+    # exe_path = os.path.abspath(__file__)
+    # pic_path = str(exe_path.split('face_rg_server_new/')[0]) + 'face_rg_files/' + "common_files/dc_marking_trans"
+    # s_path = str(exe_path.split('face_rg_server_new/')[0]) + 'face_rg_files/' + "common_files/dc_marking_trans_newnanme"
+    # print(pic_path, s_path)
+    # name2idname(pic_path, s_path)

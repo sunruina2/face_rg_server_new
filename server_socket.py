@@ -38,7 +38,7 @@ imgsize = 112
 trans_01 = 0
 emb_pkl_path = '../face_rg_files/embs_pkl/ep_insight_auroua/'
 '''生成新的人脸库'''
-# pic_path = '../face_rg_files/common_files/dc_marking_trans_newnanme/'
+# pic_path = '../face_rg_files/common_files/dc_marking_all_trans/'
 # facenet_pre_m.gen_knowns_db(pic_path, emb_pkl_path+'50w_dc_all.pkl')
 
 '''加在活体检测模型'''
@@ -51,8 +51,8 @@ fr = open(office_p, 'rb')
 all_officeinfo_dct = pickle.load(fr)  # {'046115':['孙瑞娜', 'sunruina', '19930423', []]}
 today_dt = str(time.localtime()[0]) + str(time.localtime()[1]) + str(time.localtime()[2])
 all_officeinfo_dct['053009'][2] = today_dt
-print('dddddddddddddddddddddddddddddddddddddddd', all_officeinfo_dct['053009'])
-print('all_office_num', len(all_officeinfo_dct))
+print('@@@: 改测试生日', all_officeinfo_dct['053009'])
+print('@@@: All_office_IDn:', len(all_officeinfo_dct))
 
 '''设置全局变量'''
 # 接口调用状态
@@ -88,7 +88,6 @@ facenet_pre_m.rg_hold = para_dct['rg_sim']
 
 
 def rg_1frame(f_pic):
-    # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:rg_1frame')
 
     global para_dct, frame_rg_list, last_1p_emb, his_maxacc
     now_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
@@ -255,20 +254,20 @@ def background_thread():
         i += 1  # 统计fps的时间,计算每间隔了1s，会处理几张frame
         interval = int(time.time() - start_flag)
         if interval == 1:
-            print('####################################fps:', i, ' add_n_all:',
-                  monitor_dct['add_n_all'], ' add_n_saved:', monitor_dct['add_n_saved'])
             start_flag = time.time()
             i = 0
 
         # 每天23点00分的第一帧的时间点进行一次name_embs存储，因为可能有重名的问题，所以不能存为dict
         if (monitor_dct['add_n_all'] - monitor_dct['add_n_saved']) > 0:
             time_stamp = time.strftime("%Y%m%d%H%M%S", time.localtime())
-            if time_stamp[8:] in ['090000', '110000', '150000', '160000', '200000', '230000', '145400']:
+            if time_stamp[8:] in ['090000', '110000', '150000', '170000', '200000', '230000']:
                 time.sleep(1.1)
-                embds_dict = dict(zip(facenet_pre_m.known_names, facenet_pre_m.known_embs))
+                known_names_lst = [i[0] for i in facenet_pre_m.known_names]
+                # print('aaaaaaaaaaaaaaaaaaaa', len(b))
+                embds_dict = dict(zip(known_names_lst, facenet_pre_m.known_embs))
                 with open(emb_pkl_path + time_stamp + "_embs_dict.pkl", 'wb') as f1:
                     pickle.dump(embds_dict, f1)
-
+                print('@@@: add_n_saved embs pkl :', emb_pkl_path + time_stamp + "_embs_dict.pkl", 'wb')
                 monitor_dct['add_n_saved'] = monitor_dct['add_n_all']
 
         if frame is not None:
@@ -308,7 +307,7 @@ def get_name_message(message):
     global api_status
     api_status = 'get_name_status'
     while api_status == 'get_name_status':
-        print('1111@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
+        print('---------------------------------------------------1', api_status, ' monitor_dct:', monitor_dct)
         time.sleep(0.05)
         st = time.time()
         global frame_rg_list, all_officeinfo_dct
@@ -336,7 +335,7 @@ def get_name_message(message):
                     break
         else:
             res_json = {'app_data': {'message': '本帧无效', 'persons': []}, 'app_status': '0'}
-        print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
+        # print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
         emit('get_name_response', res_json)
 
 
@@ -346,7 +345,7 @@ def get_video_message(message):
     api_status = 'get_video_status'
 
     while api_status == 'get_video_status':
-        print('2222@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
+        print('---------------------------------------------------2', api_status, ' monitor_dct:', monitor_dct)
         st = time.time()
         time.sleep(0.01)
         global camera
@@ -362,7 +361,7 @@ def get_video_message(message):
         else:
             res_json = {'app_data': {'message': '获取实时帧失败'}, 'app_status': '0'}
 
-        print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
+        # print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
         emit('get_video_response', res_json)
 
 
@@ -372,7 +371,7 @@ def lock_video_message(message):
     global api_status
     api_status = 'lock_video_status'
     if api_status == 'lock_video_status':
-        print('3333@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
+        print('---------------------------------------------------3', api_status)
         global frame_rg_list, photo_rg_list
         res_json = {'app_data': {'message': '图片有效'}, 'app_status': '1'}
 
@@ -384,7 +383,7 @@ def lock_video_message(message):
         else:
             res_json = {'app_data': {'message': '图片无效'}, 'app_status': '0'}
             photo_rg_list = [[], {'p1_id': '无人', 'p1_face': [], 'p1_crop': [], 'p1_emb': []}]
-        print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
+        # print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
 
         emit('lock_video_response', res_json)
 
@@ -396,7 +395,7 @@ def add_new_message(message):
     para = dict(message)
     api_status = 'add_new_status'
     if api_status == 'add_new_status':
-        print('44444@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
+        print('---------------------------------------------------4', api_status)
         global frame_rg_list, photo_rg_list, monitor_dct
         p_id_input = para['P1']
         p_angle_input = para['P2']
@@ -411,12 +410,13 @@ def add_new_message(message):
                 monitor_dct['add_n_all'] += 1
                 name_ps = time_stamp + p_angle_input + str(monitor_dct['add_n_all'])
                 pic_name = p_id_input + '-' + all_officeinfo_dct[p_id_input][0] + '-' + name_ps
-                facenet_pre_m.known_embs = np.insert(facenet_pre_m.known_embs, 0, values=np.asarray(p1_emb), axis=0)
-                facenet_pre_m.known_vms = np.insert(facenet_pre_m.known_vms, 0, values=np.linalg.norm(p1_emb), axis=0)
-                facenet_pre_m.known_names = np.insert(facenet_pre_m.known_names, 0, values=np.asarray(pic_name), axis=0)
-                print(para_dct['savepic_path'] + 'photos/' + pic_name + '_crop.jpg')
+
+                facenet_pre_m.known_embs = np.row_stack((facenet_pre_m.known_embs, np.asarray(p1_emb)))
+                facenet_pre_m.known_vms = np.row_stack((facenet_pre_m.known_vms, np.asarray([np.linalg.norm(p1_emb)])))
+                facenet_pre_m.known_names = np.row_stack((facenet_pre_m.known_names, np.asarray([pic_name])))
                 cv2.imwrite(para_dct['savepic_path'] + 'photos/' + pic_name + '_crop.jpg', p1_crop)
                 cv2.imwrite(para_dct['savepic_path'] + 'photos/' + pic_name + '_raw.jpg', raw_pic)
+                print('@@@: add 1 person', para_dct['savepic_path'] + 'photos/' + pic_name + '_crop.jpg')
             elif len(photo_rg_list) == 2 and photo_rg_list[0] == []:
                 res_json['app_status'] = '3'
                 res_json['app_data'] = {'message': '尚未拍照'}
@@ -426,7 +426,7 @@ def add_new_message(message):
         else:
             res_json['app_status'] = '0'
             res_json['app_data'] = {'message': '工号不存在'}
-        print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
+        # print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
 
         photo_rg_list = [[], {'p1_id': '无人', 'p1_face': [], 'p1_crop': [], 'p1_emb': []}]  # 添加完信息后，把以保存的注空
         emit('add_new_response', res_json)
