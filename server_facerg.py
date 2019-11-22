@@ -102,8 +102,7 @@ def rg_1frame(f_pic):
         else:
             qx_hold = 100
         if is_qingxi1 >= qx_hold and is_qingxi0 >= qx_hold:  # 有人且清晰，则画人脸，进行识别名字
-            names, faceis_konwns, faceembs, sims = facenet_pre_m.imgs_get_names(crop_images_rg,
-                                                                                    batchsize=len(dets))  # 获取人脸名字
+            names, faceis_konwns, faceembs, sims = facenet_pre_m.imgs_get_names(crop_images_rg,batchsize=len(dets))
             # print(names)
             names = [i.split('-')[1] for i in names]
             # now_exetime_rg = time.time()

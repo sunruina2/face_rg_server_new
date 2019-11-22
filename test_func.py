@@ -180,6 +180,19 @@
 #     print(tf.split(1, 4, t)[i].eval())
 # sess.close()
 
-import time
-today = str(time.localtime()[0])+str(time.localtime()[1])+str(time.localtime()[2])
-print(today)
+# import time
+# today = str(time.localtime()[0])+str(time.localtime()[1])+str(time.localtime()[2])
+# print(today)
+
+import numpy as np
+
+dets = [[10, 10], [1, 1], [5, 5]]
+names = ['wangli', 'zl', 'nana']
+dets_local = np.asarray(
+    [[i, (dets[i][0] * dets[i][0] + dets[i][1] * dets[i][1]) ** 0.5] for i in range(len(dets))],
+    dtype=int)
+dets_local_rank = dets_local[dets_local[:, 1].argsort()]
+names_new = ['' for i in names]
+for i in range(len(names)):
+    names_new[i] = names[dets_local_rank[i, 0]]
+print(names_new)

@@ -83,8 +83,7 @@ monitor_dct = {'add_n': 0}
 # 模型超参
 para_dct = {'mtcnn_minsize': int(0.2 * min(c_w, c_h)), 'night_start_h': 17, 'clear_day': 100, 'clear_night': 50,
             'savepic_path': '../face_rg_files/save_pics/',
-            'rg_sim': 0.8, 'frame_sim': 0.80, 'det_para': [256, 0.2, 112, 0.0],
-            'video_size_r': 0.7}  # det_para = [at,at扩充r,rg,rg扩充r]
+            'rg_sim': 0.8, 'frame_sim': 0.8, 'det_para': [256, 0.2, 112, 0.0], 'video_size_r': 0.7}  # det_para = [at,at扩充r,rg,rg扩充r]
 facenet_pre_m.rg_hold = para_dct['rg_sim']
 
 
@@ -93,11 +92,6 @@ def rg_1frame(f_pic):
 
     global para_dct, frame_rg_list, last_1p_emb, his_maxacc
     now_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
-    now_hour = int(now_time[8:10])
-    if now_hour >= para_dct['night_start_h']:
-        qx_hold = para_dct['clear_night']
-    else:
-        qx_hold = para_dct['clear_day']
 
     # 获取人脸, 由于frame色彩空间rgb不对应问题，需统一转为灰色图片
     dets, crop_images_at, point5_at, crop_images_rg, point5_rg, align_flag = fc_server.load_and_align_data(f_pic,
@@ -112,84 +106,63 @@ def rg_1frame(f_pic):
     #     align_flag = 0
 
     if align_flag != 0:
-        # 清晰度过滤，仅检测人脸概率最大的那个人的清晰度。is_qingxi1是枞向运动模糊方差，0是横向
+        # 清晰度过滤，仅检测人脸概率最大的那个人的清晰度。
+        is_qingxi1, is_qingxi0 = brenner(
+            cv2.cvtColor(np.asarray(crop_images_rg[0], np.float32), cv2.COLOR_BGR2GRAY))  # is_qingxi1是枞向运动模糊方差，0是横向
+        now_hour = int(now_time[8:10])
+        if now_hour >= para_dct['night_start_h']:
+            qx_hold = para_dct['clear_night']
+        else:
+            qx_hold = para_dct['clear_day']
+        if is_qingxi1 >= qx_hold and is_qingxi0 >= qx_hold:  # 有人且清晰，则画人脸，进行识别名字
 
-        '''活体检测'''
-        # anti_flag_list = []
-        # for i in range(len(dets)):
-        #     anti_flag_list.append(anti(crop_images_rg[i]))
-        # '''在画框上显示是否活体'''
-        # for i in range(len(dets)):
-        #     names[i] = names[i] + 'at' + str(anti_flag_list[i])
-        # 抽样存储识别图片,图片命名：时间戳 + 是否和上一张同人 + 库中最相似的相似度 + 大小 + 识别名字结果
-        if len(dets) == 1:
             '''人脸识别'''
-            # 1计算本帧是谁
             names, faceis_konwns, faceembs, sims = facenet_pre_m.imgs_get_names(crop_images_rg, batchsize=len(dets))
-            # 2计算本帧是否同人
-            is_same_p = facenet_pre_m.d_cos(faceembs[0], last_1p_emb)
-            if is_same_p[0] > para_dct['frame_sim']:
-                is_same_t = '1'
-            else:
-                is_same_t = '0'
-            # 3计算本帧清晰度
-            is_qx1, is_qx0 = brenner(cv2.cvtColor(np.asarray(crop_images_rg[0], np.float32), cv2.COLOR_BGR2GRAY))
-
-            # 逻辑判断，先判断是否同一个人，再判断本帧清晰与否，不管清洗不清晰都要有返回结果，避免闪屏
-            if is_same_t == '1':  # 同人
-                if is_qx1 >= qx_hold and is_qx0 >= qx_hold:  # 同人，清晰，可用于更新结果变量his_maxacc，更新后取历史最高概率结果
-                    if sims[0] > his_maxacc['max_sim']:  # 本帧概率大于历史最高时，更新历史最高字典结果为本帧结果
-                        his_maxacc = {'max_name': names[0], 'max_sim': sims[0]}
-                    else:  # 否则不更新历史最高结果
-                        pass
-                else:  # 同人，不清晰，不更新历史最高结果表
-                    pass
-                names[0] = his_maxacc['max_name']  # 将此人历史最高结果付给names作为返回
-                # names[0] = his_maxacc['max_name'] + '_rg'+names[0]
-            else:
-                # 如果换人了，则将单人历史最准记录置零，再开始新的人的从0更新
-                his_maxacc = {'max_name': '', 'max_sim': 0.0}
-
-            # 单人模式实时流随机保存
-            sead = hash(str(time.time())[-6:])
-            if sead % 2 == 1:  # hash采样
-                fpic_path = para_dct['savepic_path'] + 'stream/' + now_time + '_' + is_same_t + '-' + str(
-                    is_same_p[0])[2:4] + '_' + str(int(is_qx1)) + '-' + str(int(is_qx0)) + '_' + str(
-                    sims[0])[2:4]
-                cv2.imwrite(fpic_path + '_crop_@' + names[0] + '.jpg', crop_images_rg[0])
-                cv2.imwrite(fpic_path + '_raw_@' + names[0] + '.jpg', f_pic)
-            last_1p_emb = faceembs[0]  # 更新last save emb，以便判定本帧是否和上一帧同一个人
-
-            '''更新识别返回值员工id'''
             ids_cut = [i.split('-')[0] for i in names]
-        else:  # 多人，因为检测是识别两个过程，无法对应是否同人，所有目前没有比较好的结果修正，直接返回模型识别结果
-            # 多人人脸识别，大于4的去掉不识别了
-            if len(dets) > 4:
-                crop_images_rg = crop_images_rg[0:4, ...]
-                dets = dets[0:4, ...]
-            names, faceis_konwns, faceembs, sims = facenet_pre_m.imgs_get_names(crop_images_rg, batchsize=len(dets))
+            '''活体检测'''
+            # anti_flag_list = []
+            # for i in range(len(dets)):
+            #     anti_flag_list.append(anti(crop_images_rg[i]))
+            # '''在画框上显示是否活体'''
+            # for i in range(len(dets)):
+            #     names[i] = names[i] + 'at' + str(anti_flag_list[i])
 
-            # 清晰度不符合的名字拍成‘不清晰’
-            names_qx = []
-            for i in range(len(dets)):
-                is_qx1, is_qx0 = brenner(cv2.cvtColor(np.asarray(crop_images_rg[0], np.float32), cv2.COLOR_BGR2GRAY))
-                if is_qx1 >= qx_hold and is_qx0 >= qx_hold:
-                    names_qx.append(names[i])
+            # 抽样存储识别图片,图片命名：时间戳 + 是否和上一张同人 + 库中最相似的相似度 + 大小 + 识别名字结果
+            if len(names) == 1:
+
+                is_same_p = facenet_pre_m.d_cos(faceembs[0], last_1p_emb)
+                if is_same_p[0] > para_dct['frame_sim']:
+                    is_same_t = '1'
                 else:
-                    names_qx.append('不清晰')
-            names = names_qx
+                    is_same_t = '0'
 
-            # 按照距离左上角的远近返回名字顺序，越近越靠前显示。
-            dets_local = np.asarray(
-                [[i, (dets[i][0] * dets[i][0] + dets[i][1] * dets[i][1]) ** 0.5] for i in range(len(dets))],
-                dtype=int)  # 计算矩形框离左上角的距离
-            dets_local_rank = dets_local[dets_local[:, 1].argsort()]  # 按照距离排序输出名字顺序
-            names_new = ['' for i in names]
-            for i in range(len(names)):
-                names_new[i] = names[dets_local_rank[i, 0]]
-            names = names_new
+                if is_same_t == '1':
+                    if sims[0] > his_maxacc['max_sim']:
+                        # 如果遇到这个人更准确的脸部识别结果则用该最准结果作为输出结果。并把此刻最终结果存储在 历史最准字典中
+                        his_maxacc = {'max_name': names[0], 'max_sim': sims[0]}
+                        # names[0] = names[0] + '_rg'+names[0]
+                    else:
+                        # 否则用这个人过去实时流中识别最准的识别结果。
+                        names[0] = his_maxacc['max_name']
+                        # names[0] = his_maxacc['max_name'] + '_rg'+names[0]
+                else:
+                    # 如果换人了，则将单人历史最准记录置零，再开始新的人的从0更新
+                    his_maxacc = {'max_name': '', 'max_sim': 0.0}
 
-            ids_cut = [i.split('-')[0] for i in names]
+                # 单人模式实时流随机保存
+                sead = hash(str(time.time())[-6:])
+                if sead % 2 == 1:  # hash采样
+                    fpic_path = para_dct['savepic_path'] + 'stream/' + now_time + '_' + is_same_t + '-' + str(
+                        is_same_p[0])[2:4] + '_' + str(int(is_qingxi1)) + '-' + str(int(is_qingxi0)) + '_' + str(
+                        sims[0])[2:4]
+                    cv2.imwrite(fpic_path + '_crop_@' + names[0] + '.jpg', crop_images_rg[0])
+                    cv2.imwrite(fpic_path + '_raw_@' + names[0] + '.jpg', f_pic)
+                last_1p_emb = faceembs[0]  # 更新last save emb，以便判定本帧是否和上一帧同一个人
+            else:  # 多人，因为检测是识别两个过程，无法对应是否同人，所有不能作任何识别结果修正，直接返回模型识别结果即可
+                pass
+        else:  # 有人但概率最大的那张人脸不清晰，则不管单人多人，全都返回不清晰
+            ids_cut = ['不清晰' for i in dets]
+            faceembs = [[] for i in dets]
     else:  # 没有人
         ids_cut = ['无人' for i in dets]
         faceembs = [[] for i in dets]
@@ -305,28 +278,21 @@ def get_name_message(message):
         emit('get_name_response', res_json)
 
 
-@socketio.on('get_video', namespace='/test_conn')  # 实时返回摄像头结果
+@socketio.on('get_video', namespace='/test_conn')  # 消息实时传送
 def get_video_message(message):
     global api_status
     api_status = 'get_video_status'
-
     while api_status == 'get_video_status':
         print('2222@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
+        time.sleep(0.05)
         st = time.time()
-
-        global camera
-        if not camera:
-            camera = camera_open()
-        frame = camera.read()
+        global frame_rg_list
         res_json = {'app_data': {'message': '获取实时帧成功'}, 'app_status': '1'}
-        if frame is not None:
-            frame = cv2.flip(frame, 1)  # 前端输出镜面图片
-            _, raw_pic = cv2.imencode('.jpg', cv2.resize(frame, (
-                int(c_w * para_dct['video_size_r']), int(c_h * para_dct['video_size_r']))))
+        if len(frame_rg_list[0]) != 0:
+            _, raw_pic = cv2.imencode('.jpg', cv2.resize(frame_rg_list[0], (int(c_w * para_dct['video_size_r']), int(c_h * para_dct['video_size_r']))))
             res_json['app_data']['video_pic'] = raw_pic.tobytes()
         else:
             res_json = {'app_data': {'message': '获取实时帧失败'}, 'app_status': '0'}
-
         print(sys.getsizeof(res_json), np.round(time.time() - st, 4))
         emit('get_video_response', res_json)
 
@@ -343,8 +309,7 @@ def lock_video_message(message):
 
         if len(frame_rg_list) == 2 and frame_rg_list[1]['p1_id'] not in ['无人', '不清晰']:
             photo_rg_list = frame_rg_list
-            _, raw_pic = cv2.imencode('.jpg', cv2.resize(photo_rg_list[0], (
-                int(c_w * para_dct['video_size_r']), int(c_h * para_dct['video_size_r']))))
+            _, raw_pic = cv2.imencode('.jpg', cv2.resize(photo_rg_list[0], (int(c_w * para_dct['video_size_r']), int(c_h * para_dct['video_size_r']))))
             res_json['app_data']['video_pic'] = raw_pic.tobytes()
         else:
             res_json = {'app_data': {'message': '图片无效'}, 'app_status': '0'}
