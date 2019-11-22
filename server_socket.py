@@ -36,9 +36,10 @@ facenet_pre_m = InsightPreAuroua()
 lastsave_embs0 = np.zeros(512)
 imgsize = 112
 trans_01 = 0
-pic_path = '../face_rg_files/common_files/dc_marking_trans_newnanme/'
-pkl_path = '../face_rg_files/embs_pkl/ep_insight_auroua/50w_dc_all.pkl'
-# facenet_pre_m.gen_knowns_db(pic_path, pkl_path)
+emb_pkl_path = '../face_rg_files/embs_pkl/ep_insight_auroua/'
+'''生成新的人脸库'''
+# pic_path = '../face_rg_files/common_files/dc_marking_trans_newnanme/'
+# facenet_pre_m.gen_knowns_db(pic_path, emb_pkl_path+'50w_dc_all.pkl')
 
 '''加在活体检测模型'''
 # anti = AntiSpoofing()
@@ -77,11 +78,11 @@ his_maxacc = {'max_name': '', 'max_sim': 0.0}
 photo_rg_list = [[], {'p1_id': '无人', 'p1_face': [], 'p1_crop': [], 'p1_emb': []}]
 # 无效：[]，仅1人时有效变量长度为2：[img视频原图， {工号1: 33677，人脸图片: crop_img，向量: emb} ]
 # 流程监控
-monitor_dct = {'add_n': 0}
+monitor_dct = {'add_n_all': 0, 'add_n_saved': 0}
 # 模型超参
 para_dct = {'mtcnn_minsize': int(0.2 * min(c_w, c_h)), 'night_start_h': 17, 'clear_day': 100, 'clear_night': 50,
             'savepic_path': '../face_rg_files/save_pics/',
-            'rg_sim': 0.8, 'frame_sim': 0.77, 'det_para': [112, 0.35, 112, 0.0],
+            'rg_sim': 0.8, 'frame_sim': 0.77, 'det_para': [112, 0.3, 112, 0.0],
             'video_size_r': 0.7}  # det_para = [at,at扩充r,rg,rg扩充r]
 facenet_pre_m.rg_hold = para_dct['rg_sim']
 
@@ -220,7 +221,8 @@ def rg_1frame(f_pic):
     frame_rg_list = [f_pic]
     if len(dets) != 0:
         for p_i in range(len(dets)):
-            p1_rg_res = {'p1_id': ids_cut[p_i], 'p1_face': crop_images_at[p_i], 'p1_crop': crop_images_rg[p_i], 'p1_emb': faceembs[p_i]}
+            p1_rg_res = {'p1_id': ids_cut[p_i], 'p1_face': crop_images_at[p_i], 'p1_crop': crop_images_rg[p_i],
+                         'p1_emb': faceembs[p_i]}
             frame_rg_list.append(p1_rg_res)
     else:  # 无人
         frame_rg_list.append({'p1_id': '无人', 'p1_face': [], 'p1_crop': [], 'p1_emb': []})
@@ -240,7 +242,8 @@ def camera_open():
 
 
 def background_thread():
-    global camera
+    global camera, monitor_dct
+
     if not camera:
         camera = camera_open()
 
@@ -252,14 +255,25 @@ def background_thread():
         i += 1  # 统计fps的时间,计算每间隔了1s，会处理几张frame
         interval = int(time.time() - start_flag)
         if interval == 1:
-            print('#########################################################fps:', i, '  add_n:', monitor_dct['add_n'])
+            print('####################################fps:', i, ' add_n_all:',
+                  monitor_dct['add_n_all'], ' add_n_saved:', monitor_dct['add_n_saved'])
             start_flag = time.time()
             i = 0
+
+        # 每天23点00分的第一帧的时间点进行一次name_embs存储，因为可能有重名的问题，所以不能存为dict
+        if (monitor_dct['add_n_all'] - monitor_dct['add_n_saved']) > 0:
+            time_stamp = time.strftime("%Y%m%d%H%M%S", time.localtime())
+            if time_stamp[8:] in ['090000', '110000', '150000', '160000', '200000', '230000', '145400']:
+                time.sleep(1.1)
+                embds_dict = dict(zip(facenet_pre_m.known_names, facenet_pre_m.known_embs))
+                with open(emb_pkl_path + time_stamp + "_embs_dict.pkl", 'wb') as f1:
+                    pickle.dump(embds_dict, f1)
+
+                monitor_dct['add_n_saved'] = monitor_dct['add_n_all']
 
         if frame is not None:
             frame = cv2.flip(frame, 1)  # 前端输出镜面图片
             rg_1frame(frame)
-
         else:
             camera = camera_open  # 摄像头失效抓取为空，则重启摄像头
             continue
@@ -300,7 +314,7 @@ def get_name_message(message):
         global frame_rg_list, all_officeinfo_dct
         res_json = {'app_data': {'message': '识别成功', 'persons': []}, 'app_status': '1'}
         p1_id = frame_rg_list[1]['p1_id']
-        if p1_id not in ['不清晰', '无人']:
+        if p1_id not in ['不清晰', '无人', '']:
             for i in range(len(frame_rg_list)):
                 if i == 0:  # list里第一项是原图，此处不需要，take photo的时候才需要
                     pass
@@ -394,8 +408,9 @@ def add_new_message(message):
                 p1_crop = photo_rg_list[1]['p1_crop']
                 p1_emb = photo_rg_list[1]['p1_emb']
                 time_stamp = time.strftime("%Y%m%d%H%M%S", time.localtime())
-                pic_name = p_id_input + '-' + all_officeinfo_dct[p_id_input][0] + '-' + time_stamp + p_angle_input
-                monitor_dct['add_n'] += 1
+                monitor_dct['add_n_all'] += 1
+                name_ps = time_stamp + p_angle_input + str(monitor_dct['add_n_all'])
+                pic_name = p_id_input + '-' + all_officeinfo_dct[p_id_input][0] + '-' + name_ps
                 facenet_pre_m.known_embs = np.insert(facenet_pre_m.known_embs, 0, values=np.asarray(p1_emb), axis=0)
                 facenet_pre_m.known_vms = np.insert(facenet_pre_m.known_vms, 0, values=np.linalg.norm(p1_emb), axis=0)
                 facenet_pre_m.known_names = np.insert(facenet_pre_m.known_names, 0, values=np.asarray(pic_name), axis=0)

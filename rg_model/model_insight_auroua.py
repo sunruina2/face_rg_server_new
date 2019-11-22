@@ -155,10 +155,7 @@ class InsightPreAuroua():
         peoples = [i.split('-')[0] for i in self.known_names]
         count_p = Counter(peoples)
         print(count_p)
-        print('已知人脸-总共有m个人:', len(list(set(peoples))))
-        print('共计n个vectors:', len(self.known_names) - 1)
-        print('平均每人照片张数:', int((len(self.known_names) - 1) / len(list(set(peoples)))))
-        print('目前还有x人没有照片:', 61 - len(list(set(peoples))))
+        print('已知人脸:  IDs-N:', len(list(set(peoples))), '  PICs-N:', len(self.known_names), '  PICs/ID-N:', int((len(self.known_names)) / len(list(set(peoples)))))
 
     # def d_cos_old(self, v):  # 输入需要是一张脸的v:(512,), knows_v:(N, 512)
     #     v = np.reshape(v, (1, len(v)))  # 变为1行

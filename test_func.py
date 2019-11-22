@@ -184,15 +184,20 @@
 # today = str(time.localtime()[0])+str(time.localtime()[1])+str(time.localtime()[2])
 # print(today)
 
-import numpy as np
+# import numpy as np
+#
+# dets = [[10, 10], [1, 1], [5, 5]]
+# names = ['wangli', 'zl', 'nana']
+# dets_local = np.asarray(
+#     [[i, (dets[i][0] * dets[i][0] + dets[i][1] * dets[i][1]) ** 0.5] for i in range(len(dets))],
+#     dtype=int)
+# dets_local_rank = dets_local[dets_local[:, 1].argsort()]
+# names_new = ['' for i in names]
+# for i in range(len(names)):
+#     names_new[i] = names[dets_local_rank[i, 0]]
+# print(names_new)
 
-dets = [[10, 10], [1, 1], [5, 5]]
-names = ['wangli', 'zl', 'nana']
-dets_local = np.asarray(
-    [[i, (dets[i][0] * dets[i][0] + dets[i][1] * dets[i][1]) ** 0.5] for i in range(len(dets))],
-    dtype=int)
-dets_local_rank = dets_local[dets_local[:, 1].argsort()]
-names_new = ['' for i in names]
-for i in range(len(names)):
-    names_new[i] = names[dets_local_rank[i, 0]]
-print(names_new)
+import time
+for i in range(100):
+    time_stamp = time.strftime("%Y%m%d%H%M%S", time.localtime())
+    print(time_stamp, time_stamp[8:])
