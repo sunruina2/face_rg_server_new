@@ -162,10 +162,7 @@ def rg_1frame(f_pic):
             '''更新识别返回值员工id'''
             ids_cut = [i.split('-')[0] for i in names]
         else:  # 多人，因为检测是识别两个过程，无法对应是否同人，所有目前没有比较好的结果修正，直接返回模型识别结果
-            # 多人人脸识别，大于4的去掉不识别了
-            if len(dets) > 4:
-                crop_images_rg = crop_images_rg[0:4, ...]
-                dets = dets[0:4, ...]
+            # 多人人脸识别，大于4的去掉不识别了【】
             names, faceis_konwns, faceembs, sims = facenet_pre_m.imgs_get_names(crop_images_rg, batchsize=len(dets))
 
             # 清晰度不符合的名字拍成‘不清晰’
