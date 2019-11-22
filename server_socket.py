@@ -297,7 +297,7 @@ def get_name_message(message):
     api_status = 'get_name_status'
     while api_status == 'get_name_status':
         print('1111@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
-        time.sleep(0.5)
+        time.sleep(0.05)
         st = time.time()
         global frame_rg_list, all_officeinfo_dct
         res_json = {'app_data': {'message': '识别成功', 'persons': []}, 'app_status': '1'}
@@ -336,7 +336,7 @@ def get_video_message(message):
     while api_status == 'get_video_status':
         print('2222@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', api_status)
         st = time.time()
-
+        time.sleep(0.05)
         global camera
         if not camera:
             camera = camera_open()
