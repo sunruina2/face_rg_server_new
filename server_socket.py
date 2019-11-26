@@ -108,7 +108,6 @@ def rg_1frame(f_pic):
     #     ok_index], crop_images_rg[ok_index], point5_rg[ok_index]
     # if len(dets) == 0:
     #     align_flag = 0
-
     if align_flag != 0:
         # 清晰度过滤，仅检测人脸概率最大的那个人的清晰度。is_qingxi1是枞向运动模糊方差，0是横向
 
@@ -274,7 +273,8 @@ def background_thread():
             frame = cv2.flip(frame, 1)  # 前端输出镜面图片
             rg_1frame(frame)
         else:
-            camera = camera_open  # 摄像头失效抓取为空，则重启摄像头
+            print('####################### camera not work !')
+            camera = camera_open()  # 摄像头失效抓取为空，则重启摄像头
             continue
 
 
