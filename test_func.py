@@ -203,22 +203,22 @@
 #     print(time_stamp, time_stamp[8:])
 
 
-import numpy as np
-# a = '999999-长名字-10191122152020样例1000000'
-# b = np.asarray(['999999-长名字-20'])
-# b = np.append(b, values=a)
-
-
-a = np.zeros((3, 10))
-a1 = np.ones((10,))
-b = np.zeros((3, 1))
-b1 = np.asarray(1)
-c = np.zeros((3, ))
-c1 = np.ones((1,))
-print(c)
-print(c1)
-print(c.shape)
-print(c1.shape)
-c = np.row_stack((np.reshape(c,(len(c),1)), c1))
-print(c.shape)
-print(c)
+# import numpy as np
+# # a = '999999-长名字-10191122152020样例1000000'
+# # b = np.asarray(['999999-长名字-20'])
+# # b = np.append(b, values=a)
+#
+#
+# a = np.zeros((3, 10))
+# a1 = np.ones((10,))
+# b = np.zeros((3, 1))
+# b1 = np.asarray(1)
+# c = np.zeros((3, ))
+# c1 = np.ones((1,))
+# print(c)
+# print(c1)
+# print(c.shape)
+# print(c1.shape)
+# c = np.row_stack((np.reshape(c,(len(c),1)), c1))
+# print(c.shape)
+# print(c)

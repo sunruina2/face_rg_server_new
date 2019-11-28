@@ -60,9 +60,9 @@ def is_birthday(birthday):
     today = time.localtime()
     birthday = time.strptime(birthday, "%Y%m%d")
     if birthday[1] == today[1] and birthday[2] == today[2]:
-        return '1'
+        return '1', '生日快乐'
     else:
-        return '0'
+        return '0', ''
 
 
 def del_side(p5, img_size):

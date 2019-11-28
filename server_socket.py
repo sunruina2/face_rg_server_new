@@ -324,9 +324,9 @@ def get_name_message(message):
                         e_name = all_officeinfo_dct[p1_id][1]
                         is_birth = is_birthday(all_officeinfo_dct[p1_id][2])
                     else:
-                        c_name = '未识别'
-                        e_name = 'unknown'
-                        is_birth = '0'
+                        c_name = '还不认识'
+                        e_name = '请点下方录一张照片'
+                        is_birth, blessings = '0', ''
                     _, crop_raw_pic = cv2.imencode('.jpg', frame_rg_list[i]['p1_face'])
                     crop_img = crop_raw_pic.tobytes()
                     res_json['app_data']['persons'].append({'p1_id': p1_id, 'c_name': c_name, 'e_name': e_name,
