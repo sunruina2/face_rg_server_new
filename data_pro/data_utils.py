@@ -10,7 +10,7 @@ def data_iter(datasets, batch_size):
         yield datasets[i:min(i + batch_size, data_num), ...]
 
 
-def load_image(pics_path, image_size, name_is_folder=0):
+def load_image(pics_path, image_size, name_is_folder=0, print_Counter=1):
     print('pic reading %s' % pics_path)
     if os.path.isdir(pics_path):
         paths = list(os.listdir(pics_path))
@@ -36,8 +36,8 @@ def load_image(pics_path, image_size, name_is_folder=0):
                 fns.append(peo + '-' + str(peo_i))  # 文件夹名字+第几张照片
             else:
                 fns.append(pic.split('.')[0])  # 取照片原名字
-
-    print('load pic done!', Counter([i.split('-')[1] for i in fns]))
+    if print_Counter == 1:
+        print('load pic done!', Counter([i.split('-')[1] for i in fns]))
     return np.array(images), fns
 
 
@@ -84,13 +84,12 @@ def del_side(p5, img_size):
     #       ['3右嘴x', '3右嘴y'], ]]
     front_index = []
     for i in range(len(p5)):
-        if p5[i, 0, 0] < img_size*0.33:  # 左眼x在左1/3范围内
-            if p5[i, 1, 0] > img_size*0.66:  # 右眼x在右1/3范围内
+        if p5[i, 0, 0] < img_size * 0.33:  # 左眼x在左1/3范围内
+            if p5[i, 1, 0] > img_size * 0.66:  # 右眼x在右1/3范围内
                 if img_size * 0.5 < p5[i, 2, 1] < img_size * 0.85:  # 鼻尖y在crop图片下0.5 -0.85范围内
                     front_index.append(i)
 
     return front_index
-
 
 
 def info_dct(info_p, save_p):
