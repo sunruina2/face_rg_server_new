@@ -324,8 +324,8 @@ def get_name_message(message):
                         e_name = all_officeinfo_dct[p1_id][1]
                         is_birth = is_birthday(all_officeinfo_dct[p1_id][2])
                     else:
-                        c_name = '还不认识你'
-                        e_name = '请点击下方按钮拍照录入~'
+                        c_name = '不认识'
+                        e_name = '请点击下方按钮录入~'
                         is_birth, blessings = '0', ''
                     _, crop_raw_pic = cv2.imencode('.jpg', frame_rg_list[i]['p1_face'])
                     crop_img = crop_raw_pic.tobytes()
