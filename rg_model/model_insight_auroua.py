@@ -47,9 +47,9 @@ class InsightPreAuroua():
         self.feed_dict_test = {}
         print('ckpt file %s restored!' % self.au_cfg.premodel_path)
         saver = tf.train.Saver()
-        exe_path = os.path.abspath(__file__)
-        self.au_cfg.global_pkl_path = str(exe_path.split('/face_rg_server_new')[0]) + self.au_cfg.global_pkl_path
-        self.au_cfg.premodel_path = str(exe_path.split('/face_rg_server_new')[0]) + self.au_cfg.premodel_path
+        self.exe_path = os.path.abspath(__file__)
+        self.au_cfg.global_pkl_path = str(self.exe_path.split('/face_rg_server_new')[0]) + self.au_cfg.global_pkl_path
+        self.au_cfg.premodel_path = str(self.exe_path.split('/face_rg_server_new')[0]) + self.au_cfg.premodel_path
         saver.restore(self.sess, self.au_cfg.premodel_path)
         self.feed_dict_test.update(tl.utils.dict_to_one(self.net.all_drop))
         self.feed_dict_test[self.dropout_rate] = 1.0
@@ -60,7 +60,7 @@ class InsightPreAuroua():
         self.load_knows_pkl()
 
         # fontpath = str(exe_path.split('face_rg_server/')[0]) + 'face_rg_server/' + "data_pro/pre_img.jpg"
-        fontpath = str(exe_path.split('face_rg_server_new/')[0]) + 'face_rg_server_new/' + "data_pro/sample.jpg"
+        fontpath = str(self.exe_path.split('face_rg_server_new/')[0]) + 'face_rg_server_new/' + "data_pro/sample.jpg"
         image_pre1 = cv2.imread(fontpath)
         img_crop = np.asarray([cv2.resize(image_pre1, self.au_cfg.image_size)])
         face_names, is_knowns, face_embs, sim_pro_lst = self.imgs_get_names(img_crop, batchsize=1)
@@ -279,11 +279,11 @@ class InsightPreAuroua():
 
         uk_all_sim = np.ravel(uk_all_sim)
         uk_all_label = np.ravel(uk_all_label)
-        print(uk_all_sim.shape, uk_all_label.shape)
-        print(set(uk_all_label))
+        # print(uk_all_sim.shape, uk_all_label.shape)
+        # print(set(uk_all_label))
         # auc_v = np.round(roc_auc_score(uk_all_label, uk_all_sim, average='micro'), 4)
         # print('AUC 为:', auc_v)
-        print('\n')
+        # print('\n')
         if excel_flag == 1:
             for hold_v in [0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.99]:
                 uk_all_sim_01 = [i >= hold_v for i in uk_all_sim]
@@ -312,37 +312,44 @@ if __name__ == "__main__":
     # ckpt_pt = '/Users/finup/Desktop/rg/face_rg_files/premodels/pm_insight_auroua/1030_auroua_out/mgpu_res/ckpt/InsightFace_iter_'
     # p_dct = {'50w': '500000'}
     '''M_deepsight'''
-    # model_name = 'office_aurora_asian_fine_s50'
-    # ckpt_pt = '/Users/finup/Desktop/rg/face_rg_files/premodels/pm_insight_auroua/1120_continue_50w_ms1_assian/InsightFace_iter_'
-    # p_dct = {'50deepas160_75fine': '750000-3', '50deepas160_120fine': '1200000-8'}
+    model_name = 'office_aurora_asian_fine_s50'
+    ckpt_pt = '/Users/finup/Desktop/rg/face_rg_files/premodels/pm_insight_auroua/1120_continue_50w_ms1_assian/InsightFace_iter_'
+    p_dct = {
+        '50deepas160_75fine': '750000-3', '50deepas160_115fine': '1150000-8', '50deepas160_120fine': '1200000-8'}
     '''M_deepsight_s160'''
-    model_name = 'office_aurora_asian_fine_s160'
-    ckpt_pt = '/Users/finup/Desktop/rg/face_rg_files/premodels/pm_insight_auroua/1126_continue_50w_ms1assian_s160/InsightFace_iter_'
-    p_dct = {'50w_deepassian_55fine': '550000-1', '50w_deepassian_60fine': '600000-2',
-             '50w_deepassian_65fine': '650000-3'}
+    # model_name = 'office_aurora_asian_fine_s160'
+    # ckpt_pt = '/Users/finup/Desktop/rg/face_rg_files/premodels/pm_insight_auroua/1126_continue_50w_ms1assian_s160/InsightFace_iter_'
+    # p_dct = {
+    #     '50w_deepassian_55fine': '550000-1', '50w_deepassian_60fine': '600000-2',
+    #     '50w_deepassian_65fine': '650000-3',
+    #     '50w_deepassian_70fine': '700000-4', '50w_deepassian_75fine': '750000-5'}
     insight_c = InsightPreAuroua()
     pkl_pkg = '/Users/finup/Desktop/rg/face_rg_files/embs_pkl/ep_insight_auroua_test/'
     roc_fig = '/Users/finup/Desktop/rg/face_rg_server_new/data_pro/' + model_name + '.jpg'
-
+    # /Users/finup/Desktop/rg/face_rg_files/premodels/pm_insight_auroua/1126_continue_50w_ms1assian_s160/
+    # /Users/finup/Desktop/rg/face_rg_files/premodels/pm_insight_auroua/1126_continue_50w_ms1assian_s160/
+    # /Users/finup/Desktop/rg/face_rg_files/premodels/pm_insight_auroua/1126_continue_50w_ms1assian_s160/InsightFace_iter_700000-4.ckpt
     '''产生k&uk的embs'''
-    root_path = '/Users/finup/Desktop/rg/ver_data/'
-    pk_file = root_path + 'dc_marking_trans_avg_k/'
-    pu_file = root_path + 'dc_marking_trans_avg_uk/'
-    for k, v in p_dct.items():
-        saver = tf.train.Saver()
-        saver.restore(insight_c.sess, ckpt_pt + v + '.ckpt')
-        k_pkl = pkl_pkg + k + '_' + model_name + '_avg_k.pkl'
-        u_pkl = pkl_pkg + k + '_' + model_name + '_avg_uk.pkl'
-        insight_c.gen_knowns_db(pk_file, k_pkl, print_Counter=0)
-        insight_c.gen_knowns_db(pu_file, u_pkl, print_Counter=0)
+    # root_path = '/Users/finup/Desktop/rg/ver_data/'
+    # pk_file = root_path + 'dc_marking_trans_avg_k/'
+    # pu_file = root_path + 'dc_marking_trans_avg_uk/'
+    # for k, v in p_dct.items():
+    #     saver = tf.train.Saver()
+    #     saver.restore(insight_c.sess, ckpt_pt + v + '.ckpt')
+    #     k_pkl = pkl_pkg + k + '_' + model_name + '_avg_k.pkl'
+    #     u_pkl = pkl_pkg + k + '_' + model_name + '_avg_uk.pkl'
+    #     insight_c.gen_knowns_db(pk_file, k_pkl, print_Counter=0)
+    #     insight_c.gen_knowns_db(pu_file, u_pkl, print_Counter=0)
 
     '''评估'''
     plt.figure()
     lw = 2
     plt.figure(figsize=(12, 20))
-    colors = ['black', 'red', 'orange', 'yellow', 'green', 'c', 'deepskyblue', 'blue', 'darkviolet', 'deeppink', 'pink']
+    colors = ['red', 'orange', 'yellow', 'green', 'c', 'deepskyblue', 'blue', 'darkviolet', 'deeppink', 'pink', 'black']
     c_i = -1
+    m_tar_far = {}
     for k, v in p_dct.items():
+        tar_far = {}
         k_pkl = pkl_pkg + k + '_' + model_name + '_avg_k.pkl'
         u_pkl = pkl_pkg + k + '_' + model_name + '_avg_uk.pkl'
         fpr, tpr, threshold = insight_c.verify_db(k_pkl, u_pkl, excel_flag=0)
@@ -350,19 +357,35 @@ if __name__ == "__main__":
         c_i += 1
         plt.plot(fpr, tpr, color=colors[c_i],
                  lw=lw, label=k + ': AUC' + str(np.round(roc_auc, 4)))  # 假正率为横坐标，真正率为纵坐标做曲线
+        print('\n', k, v)
+        for i in range(len(fpr)):
+            if np.round(fpr[i], 1) == 0.1:
+                tar_far[0.1] = np.round(tpr[i], 3)
+            if np.round(fpr[i], 2) == 0.01:
+                tar_far[0.01] = np.round(tpr[i], 3)
+            if np.round(fpr[i], 3) == 0.001:
+                tar_far[0.001] = np.round(tpr[i], 3)
+            if np.round(fpr[i], 4) == 0.0001:
+                tar_far[0.0001] = np.round(tpr[i], 3)
+        m_tar_far[k] = tar_far
+        # print(k+' tar@far='+str(tar_far))
+    for k, v in m_tar_far.items():
+        print(k, v)
+
     plt.plot([0, 1], [0, 1.01], color='navy', lw=lw, linestyle='--')
     plt.plot([0.1, 0.1], [0, 1.01], color='gray', linestyle='-.')
     plt.plot([0.01, 0.01], [0, 1.01], color='gray', linestyle='-.')
     plt.plot([0.001, 0.001], [0, 1.01], color='gray', linestyle='-.')
     plt.xlim([0.0, 0.5])
-    plt.ylim([0, 1.01])
+    plt.ylim([0.4, 1.01])
     y_ticks = np.arange(0, 1.01, 0.01)
     plt.yticks(y_ticks)
     plt.grid(linestyle='-.', axis='y', which='major')
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('ROC Curve @IDcard1315P')
+    plt.title('ROC ', )
     plt.legend(loc="upper right")
     plt.subplots_adjust(top=0.98, bottom=0.02, right=0.98, left=0.07, hspace=2, wspace=2)
     plt.margins(0.03, 0.03)
-    plt.savefig(model_name + '.jpg')
+    plt.savefig(str(insight_c.exe_path.split('face_rg_server_new/')[
+                        0]) + 'face_rg_files/premodels/pm_insight_auroua/evaluate_out/' + model_name + '.jpg')
