@@ -2,7 +2,7 @@ import cv2 as cv
 import numpy as np
 import time
 from skimage import transform as trans
-
+import math
 
 def card_trans_90(img, name):
     start = time.time()
@@ -53,10 +53,43 @@ def card_trans_90(img, name):
     print(time.time() - start)
 
 
+def rotated_img_with_radiation(img, name, is_show=False):
+    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    thresh = cv.adaptiveThreshold(gray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2)
+    if is_show:
+        cv.imshow('thresh', thresh)
+    # 计算包含了旋转文本的最小边框
+    coords = np.column_stack(np.where(thresh > 0))
+
+    # 该函数给出包含着整个文字区域矩形边框，这个边框的旋转角度和图中文本的旋转角度一致
+    angle = cv.minAreaRect(coords)[-1]
+    print(angle)
+    # 调整角度
+    if angle < -45:
+        angle = -(90 + angle)
+    else:
+        angle = -angle
+    # 仿射变换
+    h, w = gray.shape[:2]
+    center = (w // 2, h // 2)
+    print(angle)
+    M = cv.getRotationMatrix2D(center, 20, 1.0)
+    rotated = cv.warpAffine(gray, M, (w, h), flags=cv.INTER_CUBIC, borderMode=cv.BORDER_REPLICATE)
+    cv.imwrite(name + '_trans.jpg', rotated)
+    if is_show:
+        cv.putText(rotated, 'Angle: {:.2f} degrees'.format(angle), (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7,
+                    (0, 0, 255), 2)
+        print('[INFO] angel :{:.3f}'.format(angle))
+        cv.imshow('Rotated', rotated)
+        cv.waitKey()
+    return rotated
+
+
 if __name__ == '__main__':
     # pname = 'sample'
-    # pname = 'WechatIMG14076'
-    pname = 'WechatIMG75'
-    # pname = 'WechatIMG76'
+    # pname = 'WechatIMG75'
+    pname = 'WechatIMG76'
     image = cv.imread('/Users/finup/Desktop/rg/face_rg_server_new/' + pname + '.jpg', cv.IMREAD_COLOR)
-    card_trans_90(image, pname)
+    # card_trans_90(image, pname)
+
+    rotated_img_with_radiation(image, pname)
